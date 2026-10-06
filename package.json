@@ -9,7 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "openapi:types": "openapi-typescript http://localhost:3011/api/docs-json -o src/types/api.d.ts"
+    "openapi:types": "openapi-typescript ../scrubber-backend/docs/openapi/openapi.json -o src/types/api.d.ts"
   },
   "dependencies": {
     "next": "16.3.1",

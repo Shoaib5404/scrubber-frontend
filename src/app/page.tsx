@@ -63,7 +63,7 @@ export default function Home() {
       <ul className="list-disc space-y-2 pl-5 text-slate-700">
         <li>
           <Link className="underline" href="/login">
-            Login (Phase 3)
+            Sign in
           </Link>
         </li>
         <li>

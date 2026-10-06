@@ -49,11 +49,31 @@ export async function apiRequest<T>(
   if (!response.ok) {
     let title = response.statusText;
     try {
-      const payload = (await response.json()) as { title?: string; detail?: string };
-      title = payload.title ?? payload.detail ?? title;
+      const payload = (await response.json()) as {
+        title?: string;
+        detail?: string;
+        message?: string | string[];
+      };
+      if (payload.title) {
+        title = payload.title;
+      } else if (payload.detail) {
+        title = payload.detail;
+      } else if (Array.isArray(payload.message)) {
+        title = payload.message.join(', ');
+      } else if (typeof payload.message === 'string') {
+        title = payload.message;
+      }
     } catch {
       // ignore JSON parse errors
     }
+
+    if (response.status === 401 || response.status === 403) {
+      tokenManager.clear();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('scrubber:auth-expired'));
+      }
+    }
+
     throw new ApiClientError(title, response.status, title);
   }
 
