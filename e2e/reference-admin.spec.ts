@@ -55,4 +55,18 @@ test.describe('reference admin', () => {
     const empty = page.getByText('No records match your filters.');
     await expect(table.or(empty)).toBeVisible({ timeout: 15_000 });
   });
+
+  test('staff can open Wave D articles domain', async ({ page }) => {
+    await login(page);
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    await page.getByRole('link', { name: 'References' }).click();
+    await page.getByTestId('reference-domain-link-articles').click();
+    await expect(page).toHaveURL(/\/dashboard\/references\/articles/);
+    await expect(page.getByRole('heading', { name: 'Articles' })).toBeVisible();
+
+    const table = page.getByTestId('reference-records-table');
+    const empty = page.getByText('No records match your filters.');
+    await expect(table.or(empty)).toBeVisible({ timeout: 15_000 });
+  });
 });
