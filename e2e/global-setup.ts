@@ -15,6 +15,9 @@ type PrismaLike = {
   serviceLine: {
     create: (args: unknown) => Promise<unknown>;
   };
+  cptCode: {
+    upsert: (args: unknown) => Promise<unknown>;
+  };
   $disconnect: () => Promise<void>;
 };
 
@@ -140,6 +143,19 @@ export default async function globalSetup() {
       chargeAmount: 10,
       units: 1,
       status: 'pending',
+    },
+  });
+
+  await prisma.cptCode.upsert({
+    where: { name: '97597' },
+    create: {
+      name: '97597',
+      description: 'Debridement, open wound',
+      isActive: true,
+    },
+    update: {
+      description: 'Debridement, open wound',
+      isActive: true,
     },
   });
 
