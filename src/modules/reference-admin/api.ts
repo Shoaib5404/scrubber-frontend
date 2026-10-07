@@ -40,11 +40,11 @@ export async function listDomainReferences(
 
 export async function getDomainReference(
   domain: string,
-  id: number,
+  id: number | string,
 ): Promise<ReferenceRow> {
   const res = await apiRequest<ApiSuccess<ReferenceRow>>(
     'GET',
-    `/admin/references/${encodeURIComponent(domain)}/${id}`,
+    `/admin/references/${encodeURIComponent(domain)}/${encodeURIComponent(String(id))}`,
   );
   return res.data;
 }
@@ -63,31 +63,34 @@ export async function createDomainReference(
 
 export async function updateDomainReference(
   domain: string,
-  id: number,
+  id: number | string,
   body: Record<string, unknown>,
 ): Promise<ReferenceRow> {
   const res = await apiRequest<ApiSuccess<ReferenceRow>>(
     'PUT',
-    `/admin/references/${encodeURIComponent(domain)}/${id}`,
+    `/admin/references/${encodeURIComponent(domain)}/${encodeURIComponent(String(id))}`,
     body,
   );
   return res.data;
 }
 
-export async function deleteDomainReference(domain: string, id: number): Promise<void> {
+export async function deleteDomainReference(
+  domain: string,
+  id: number | string,
+): Promise<void> {
   await apiRequest<ApiSuccess<unknown>>(
     'DELETE',
-    `/admin/references/${encodeURIComponent(domain)}/${id}`,
+    `/admin/references/${encodeURIComponent(domain)}/${encodeURIComponent(String(id))}`,
   );
 }
 
 export async function toggleDomainReferenceActive(
   domain: string,
-  id: number,
+  id: number | string,
 ): Promise<ReferenceRow> {
   const res = await apiRequest<ApiSuccess<ReferenceRow>>(
     'POST',
-    `/admin/references/${encodeURIComponent(domain)}/${id}/toggle-active`,
+    `/admin/references/${encodeURIComponent(domain)}/${encodeURIComponent(String(id))}/toggle-active`,
   );
   return res.data;
 }

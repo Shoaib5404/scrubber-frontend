@@ -15,7 +15,7 @@ export type DomainSummary = {
 };
 
 export type ReferenceRow = Record<string, unknown> & {
-  id?: number;
+  id?: number | string;
 };
 
 export type PaginatedRefsMeta = {
