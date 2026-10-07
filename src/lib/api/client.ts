@@ -23,7 +23,8 @@ export async function apiRequest<T>(
   options: ApiRequestOptions = {},
 ): Promise<T> {
   const headers = new Headers(options.headers);
-  if (!headers.has('Content-Type') && body !== undefined) {
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  if (!headers.has('Content-Type') && body !== undefined && !isFormData) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -39,7 +40,12 @@ export async function apiRequest<T>(
     response = await fetch(joinUrl(getApiBaseUrl(), path), {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body:
+        body === undefined
+          ? undefined
+          : isFormData
+            ? (body as FormData)
+            : JSON.stringify(body),
       signal: options.signal,
     });
   } catch (error) {

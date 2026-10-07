@@ -1,8 +1,17 @@
+'use client';
+
+import { useState } from 'react';
+import { AppShell, BatchList, BatchUpload } from '@/modules/batches';
+
 export default function StaffHomePage() {
+  const [refreshKey, setRefreshKey] = useState(0);
+
   return (
-    <main className="p-8">
-      <h1 className="text-2xl font-semibold">Staff dashboard</h1>
-      <p className="mt-2 text-slate-600">Placeholder — Phase 8.</p>
-    </main>
+    <AppShell title="Staff dashboard" basePath="/dashboard">
+      <div className="space-y-8">
+        <BatchUpload onUploaded={() => setRefreshKey((k) => k + 1)} />
+        <BatchList basePath="/dashboard" refreshKey={refreshKey} />
+      </div>
+    </AppShell>
   );
 }
