@@ -29,12 +29,20 @@ export function AppShell({ title, basePath, children }: AppShellProps) {
                 Batches
               </Link>
               {basePath === '/dashboard' ? (
-                <Link
-                  href="/search"
-                  className="rounded-md px-2 py-1 text-slate-700 hover:bg-slate-100"
-                >
-                  Coding search
-                </Link>
+                <>
+                  <Link
+                    href="/dashboard/references"
+                    className="rounded-md px-2 py-1 text-slate-700 hover:bg-slate-100"
+                  >
+                    References
+                  </Link>
+                  <Link
+                    href="/search"
+                    className="rounded-md px-2 py-1 text-slate-700 hover:bg-slate-100"
+                  >
+                    Coding search
+                  </Link>
+                </>
               ) : null}
             </nav>
           </div>
