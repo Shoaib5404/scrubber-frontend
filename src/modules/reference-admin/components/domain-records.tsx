@@ -6,7 +6,9 @@ import { AsyncState, friendlyError } from '@/modules/batches/components/async-st
 import {
   createDomainReference,
   deleteDomainReference,
+  exportDomainReference,
   getDomainReference,
+  importDomainReference,
   listDomainReferences,
   listReferenceDomains,
   toggleDomainReferenceActive,
@@ -42,6 +44,8 @@ export function DomainRecords({ domainSlug }: DomainRecordsProps) {
   const [modal, setModal] = useState<ModalState>(null);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [ioBusy, setIoBusy] = useState(false);
+  const [ioMessage, setIoMessage] = useState<string | null>(null);
 
   const loadMeta = useCallback(async () => {
     setMetaLoading(true);
@@ -168,6 +172,36 @@ export function DomainRecords({ domainSlug }: DomainRecordsProps) {
 
   const title = domainMeta?.title ?? domainSlug;
 
+  const handleExport = async () => {
+    setActionError(null);
+    setIoMessage(null);
+    setIoBusy(true);
+    try {
+      await exportDomainReference(domainSlug);
+      setIoMessage('Export downloaded.');
+    } catch (err) {
+      setActionError(friendlyError(err));
+    } finally {
+      setIoBusy(false);
+    }
+  };
+
+  const handleImportFile = async (file: File | undefined) => {
+    if (!file) return;
+    setActionError(null);
+    setIoMessage(null);
+    setIoBusy(true);
+    try {
+      const result = await importDomainReference(domainSlug, file);
+      setIoMessage(result.message);
+      await loadRecords();
+    } catch (err) {
+      setActionError(friendlyError(err));
+    } finally {
+      setIoBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-slate-600">
@@ -189,16 +223,55 @@ export function DomainRecords({ domainSlug }: DomainRecordsProps) {
             <h2 id="domain-records-heading" className="text-base font-semibold text-slate-900">
               {title}
             </h2>
-            {domainHasOp(ops, 'create') ? (
-              <button
-                type="button"
-                onClick={() => setModal({ mode: 'create' })}
-                className="rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-800"
-              >
-                New record
-              </button>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {domainHasOp(ops, 'export') ? (
+                <button
+                  type="button"
+                  disabled={ioBusy}
+                  onClick={() => void handleExport()}
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50"
+                  data-testid="reference-export"
+                >
+                  Export JSON
+                </button>
+              ) : null}
+              {domainHasOp(ops, 'import') ? (
+                <label className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 has-[:disabled]:opacity-50">
+                  <span>{ioBusy ? 'Importing…' : 'Import file'}</span>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.json,.txt,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    className="sr-only"
+                    disabled={ioBusy}
+                    data-testid="reference-import"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      void handleImportFile(file);
+                    }}
+                  />
+                </label>
+              ) : null}
+              {domainHasOp(ops, 'create') ? (
+                <button
+                  type="button"
+                  onClick={() => setModal({ mode: 'create' })}
+                  className="rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-800"
+                >
+                  New record
+                </button>
+              ) : null}
+            </div>
           </div>
+
+          {ioMessage ? (
+            <div
+              className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
+              role="status"
+            >
+              {ioMessage}
+            </div>
+          ) : null}
 
           <form
             className="mb-4 flex flex-wrap items-end gap-3"

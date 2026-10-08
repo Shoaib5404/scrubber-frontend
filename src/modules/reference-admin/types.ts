@@ -6,7 +6,9 @@ export type ReferenceOperation =
   | 'create'
   | 'update'
   | 'destroy'
-  | 'toggle_active';
+  | 'toggle_active'
+  | 'import'
+  | 'export';
 
 export type DomainSummary = {
   slug: string;
