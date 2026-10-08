@@ -37,13 +37,32 @@ export function AppShell({ title, basePath, children }: AppShellProps) {
                     References
                   </Link>
                   <Link
+                    href="/dashboard/users"
+                    className="rounded-md px-2 py-1 text-slate-700 hover:bg-slate-100"
+                  >
+                    Users
+                  </Link>
+                  <Link
+                    href="/dashboard/upload-logs"
+                    className="rounded-md px-2 py-1 text-slate-700 hover:bg-slate-100"
+                  >
+                    Upload logs
+                  </Link>
+                  <Link
                     href="/search"
                     className="rounded-md px-2 py-1 text-slate-700 hover:bg-slate-100"
                   >
                     Coding search
                   </Link>
                 </>
-              ) : null}
+              ) : (
+                <Link
+                  href="/portal/upload-logs"
+                  className="rounded-md px-2 py-1 text-slate-700 hover:bg-slate-100"
+                >
+                  Upload logs
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-600">
