@@ -15,7 +15,21 @@ export type AuthUser = {
   email: string;
   name: string;
   role: string;
+  tenant_id?: number | null;
+  email_verified?: boolean;
+  permissions?: string[];
+  subscription_status?: string;
+  subscription_active?: boolean;
+  /** Staff-managed subscription feature codes (e.g. web.upload, api.access). */
+  features?: string[];
 };
+
+export const TenantFeatureCode = {
+  WebUpload: 'web.upload',
+  ApiAccess: 'api.access',
+  ApiBatches: 'api.batches',
+  ApiReference: 'api.reference',
+} as const;
 
 export type AuthSession = {
   accessToken: string;
@@ -23,4 +37,69 @@ export type AuthSession = {
   tokenType: 'Bearer';
   expiresIn: number;
   user: AuthUser;
+  warning?: string;
 };
+
+export const Permission = {
+  DashboardView: 'dashboard.view',
+  BatchesView: 'batches.view',
+  BatchesUpload: 'batches.upload',
+  DatasetsManage: 'datasets.manage',
+  ArticlesManage: 'articles.manage',
+  UsersManage: 'users.manage',
+  TenantsManage: 'tenants.manage',
+} as const;
+
+export function hasPermission(
+  user: AuthUser | null | undefined,
+  permission: string,
+): boolean {
+  if (!user) {
+    return false;
+  }
+  if (user.role === 'super_admin') {
+    return true;
+  }
+  return (user.permissions ?? []).includes(permission);
+}
+
+export function canUploadOrValidate(user: AuthUser | null | undefined): boolean {
+  if (!user) {
+    return false;
+  }
+  if (isStaffRole(user.role)) {
+    return true;
+  }
+  if (user.subscription_active === false) {
+    return false;
+  }
+  const features = user.features;
+  if (features == null) {
+    // Legacy sessions without features field — treat as allowed until re-login.
+    return true;
+  }
+  return features.includes(TenantFeatureCode.WebUpload);
+}
+
+export function hasTenantFeature(
+  user: AuthUser | null | undefined,
+  feature: string,
+): boolean {
+  if (!user) {
+    return false;
+  }
+  if (isStaffRole(user.role)) {
+    return true;
+  }
+  return (user.features ?? []).includes(feature);
+}
+
+export const SUBSCRIPTION_INACTIVE_MESSAGE =
+  'Your subscription is not active. Upload and validation are unavailable. Please contact support to renew.';
+
+/** Login inactive-account copy. */
+export const ACCOUNT_DEACTIVATED_MESSAGE =
+  'Your account has been deactivated.';
+
+/** sessionStorage key used when mid-session auth fails due to deactivation. */
+export const AUTH_REASON_STORAGE_KEY = 'scrubber:auth-reason';

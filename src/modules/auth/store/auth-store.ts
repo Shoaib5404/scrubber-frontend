@@ -10,6 +10,7 @@ type AuthState = {
   status: AuthStatus;
   user: AuthUser | null;
   setSession: (accessToken: string, refreshToken: string, user: AuthUser) => void;
+  patchUser: (patch: Partial<AuthUser>) => void;
   clear: () => void;
   login: (email: string, password: string) => Promise<string>;
   logout: () => Promise<void>;
@@ -53,6 +54,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     tokenManager.setRefreshToken(refreshToken);
     writeStoredUser(user);
     set({ status: 'authenticated', user });
+  },
+
+  patchUser: (patch) => {
+    const current = get().user;
+    if (!current) {
+      return;
+    }
+    const next = { ...current, ...patch };
+    writeStoredUser(next);
+    set({ user: next });
   },
 
   clear: () => {

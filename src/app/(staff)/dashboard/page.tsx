@@ -1,10 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Permission, hasPermission, useAuthStore } from '@/modules/auth';
 import { AppShell, BatchList, BatchUpload } from '@/modules/batches';
 
-const STAFF_TOOLS: Array<{ href: string; label: string; blurb: string }> = [
+const STAFF_TOOLS: Array<{
+  href: string;
+  label: string;
+  blurb: string;
+  permission?: string;
+  superAdminOnly?: boolean;
+}> = [
   {
     href: '/dashboard/references',
     label: 'References',
@@ -16,9 +23,22 @@ const STAFF_TOOLS: Array<{ href: string; label: string; blurb: string }> = [
     blurb: 'CPT / ICD lookup and CPT explorer',
   },
   {
+    href: '/dashboard/tenants',
+    label: 'Tenants',
+    blurb: 'Organizations, invites, and subscriptions',
+    permission: Permission.TenantsManage,
+  },
+  {
     href: '/dashboard/users',
     label: 'Users',
     blurb: 'Staff accounts and API clients',
+    permission: Permission.UsersManage,
+  },
+  {
+    href: '/dashboard/permissions',
+    label: 'Permissions',
+    blurb: 'Role permission matrix',
+    superAdminOnly: true,
   },
   {
     href: '/dashboard/upload-logs',
@@ -29,6 +49,20 @@ const STAFF_TOOLS: Array<{ href: string; label: string; blurb: string }> = [
 
 export default function StaffHomePage() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const user = useAuthStore((s) => s.user);
+  const tools = useMemo(
+    () =>
+      STAFF_TOOLS.filter((tool) => {
+        if (tool.superAdminOnly) {
+          return user?.role === 'super_admin';
+        }
+        if (tool.permission) {
+          return hasPermission(user, tool.permission);
+        }
+        return true;
+      }),
+    [user],
+  );
 
   return (
     <AppShell title="Staff dashboard" basePath="/dashboard">
@@ -40,11 +74,11 @@ export default function StaffHomePage() {
             </h2>
             <p className="mt-1 max-w-3xl text-sm text-slate-600">
               Condensed Next admin: batches and claims here; reference data, users, and coding
-              tools via the links below — not one Blade page per Laravel route.
+              tools via the links below.
             </p>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="staff-tools">
-            {STAFF_TOOLS.map((tool) => (
+            {tools.map((tool) => (
               <li key={tool.href}>
                 <Link
                   href={tool.href}

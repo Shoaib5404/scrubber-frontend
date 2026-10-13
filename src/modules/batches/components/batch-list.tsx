@@ -3,7 +3,12 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { listBatches } from '../api';
-import type { BatchSummary, LaravelPaginator } from '../types';
+import {
+  BATCH_STATUS_FILTERS,
+  isBatchStatusPollable,
+  type BatchSummary,
+  type LengthAwarePaginator,
+} from '../types';
 import { AsyncState, friendlyError } from './async-state';
 import { StatusBadge } from './status-badge';
 
@@ -14,39 +19,77 @@ type BatchListProps = {
 
 export function BatchList({ basePath, refreshKey = 0 }: BatchListProps) {
   const [page, setPage] = useState(1);
-  const [data, setData] = useState<LaravelPaginator<BatchSummary> | null>(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [data, setData] = useState<LengthAwarePaginator<BatchSummary> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { quiet?: boolean }) => {
+    if (!opts?.quiet) {
+      setLoading(true);
+    }
     setError(null);
     try {
-      const result = await listBatches({ page, per_page: 15 });
+      const result = await listBatches({
+        page,
+        per_page: 15,
+        status: statusFilter || undefined,
+      });
       setData(result);
     } catch (err) {
       setError(friendlyError(err));
       setData(null);
     } finally {
-      setLoading(false);
+      if (!opts?.quiet) {
+        setLoading(false);
+      }
     }
-  }, [page]);
+  }, [page, statusFilter]);
 
   useEffect(() => {
     void load();
   }, [load, refreshKey]);
 
+  useEffect(() => {
+    const hasInFlight = data?.data.some((b) => isBatchStatusPollable(b.status));
+    if (!hasInFlight) return;
+    const timer = window.setInterval(() => {
+      void load({ quiet: true });
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [data, load]);
+
   return (
     <section aria-labelledby="batch-list-heading">
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 id="batch-list-heading" className="text-base font-semibold text-slate-900">
           Batches
         </h2>
-        {data ? (
-          <p className="text-xs text-slate-500" data-testid="batch-pagination">
-            Page {data.current_page} of {data.last_page} · {data.total} total
-          </p>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <span>Status</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setPage(1);
+                setStatusFilter(e.target.value);
+              }}
+              className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
+              data-testid="batch-status-filter"
+            >
+              {BATCH_STATUS_FILTERS.map((opt) => (
+                <option key={opt.value || 'all'} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {data ? (
+            <p className="text-xs text-slate-500" data-testid="batch-pagination">
+              Page {data.current_page} of {data.last_page} · {data.total} total
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <AsyncState
@@ -64,6 +107,7 @@ export function BatchList({ basePath, refreshKey = 0 }: BatchListProps) {
                 <th className="px-4 py-3 font-medium">Stage</th>
                 <th className="px-4 py-3 font-medium">Claims</th>
                 <th className="px-4 py-3 font-medium">Created</th>
+                <th className="px-4 py-3 font-medium">EDI</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -85,6 +129,16 @@ export function BatchList({ basePath, refreshKey = 0 }: BatchListProps) {
                   <td className="px-4 py-3 text-slate-700">{batch.total_claims}</td>
                   <td className="px-4 py-3 text-slate-600">
                     {new Date(batch.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`${basePath}/batches/${batch.id}/edi`}
+                      className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline"
+                      title="Open EDI file"
+                      data-testid={`batch-edi-${batch.id}`}
+                    >
+                      View
+                    </Link>
                   </td>
                 </tr>
               ))}

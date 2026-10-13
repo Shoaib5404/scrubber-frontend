@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AsyncState, friendlyError } from '@/modules/batches/components/async-state';
 import {
@@ -23,19 +24,32 @@ type DomainRecordsProps = {
   domainSlug: string;
 };
 
+/** Initial search from claim-issue deep links (`?search=` / `cpt` / `cpt_code`). */
+function searchFromParams(params: URLSearchParams): string {
+  return (
+    params.get('search')?.trim() ||
+    params.get('cpt')?.trim() ||
+    params.get('cpt_code')?.trim() ||
+    ''
+  );
+}
+
 type ModalState =
   | { mode: 'create' }
   | { mode: 'edit' | 'view'; row: ReferenceRow }
   | null;
 
 export function DomainRecords({ domainSlug }: DomainRecordsProps) {
+  const searchParams = useSearchParams();
+  const initialSearch = searchFromParams(searchParams);
+
   const [domainMeta, setDomainMeta] = useState<DomainSummary | null>(null);
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaError, setMetaError] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
   const [isActiveFilter, setIsActiveFilter] = useState('');
   const [data, setData] = useState<PaginatedRefs | null>(null);
   const [loading, setLoading] = useState(true);
@@ -224,6 +238,15 @@ export function DomainRecords({ domainSlug }: DomainRecordsProps) {
               {title}
             </h2>
             <div className="flex flex-wrap items-center gap-2">
+              {domainSlug === 'icd10-codes' ? (
+                <Link
+                  href="/icd10-cm"
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                  data-testid="icd10-cm-browser-link"
+                >
+                  ICD-10-CM browser
+                </Link>
+              ) : null}
               {domainHasOp(ops, 'export') ? (
                 <button
                   type="button"
@@ -363,6 +386,19 @@ export function DomainRecords({ domainSlug }: DomainRecordsProps) {
                         ))}
                         <td className="whitespace-nowrap px-3 py-2">
                           <div className="flex flex-wrap gap-1">
+                            {domainSlug === 'articles' && row.article_id != null ? (
+                              <Link
+                                href={`/dashboard/articles/${encodeURIComponent(String(row.article_id))}${
+                                  row.article_version != null
+                                    ? `?ver=${encodeURIComponent(String(row.article_version))}`
+                                    : ''
+                                }`}
+                                className="rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-50"
+                                data-testid={`article-open-${row.article_id}`}
+                              >
+                                Open article
+                              </Link>
+                            ) : null}
                             {domainHasOp(ops, 'show') ? (
                               <button
                                 type="button"

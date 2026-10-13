@@ -59,7 +59,7 @@ export function DomainList() {
           Reference domains
         </h2>
         <p className="max-w-3xl text-sm text-slate-600">
-          One shared admin for all Nest reference tables — not a separate page per Laravel Blade
+          One shared admin for all Nest reference tables — not a separate page per domain
           route. Use Import/Export where shown; other bulk loads stay on Nest CLI (
           <code className="text-xs">npm run cli -- …:import</code>).
         </p>

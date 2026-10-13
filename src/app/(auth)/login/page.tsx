@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { LoginForm } from '@/modules/auth';
 
 export default function LoginPage() {
@@ -7,7 +8,9 @@ export default function LoginPage() {
       <p className="mt-2 text-sm text-slate-600">
         Use your Neo Scrubber account email and password.
       </p>
-      <LoginForm />
+      <Suspense fallback={<p className="mt-8 text-sm text-slate-600">Loading…</p>}>
+        <LoginForm />
+      </Suspense>
     </main>
   );
 }

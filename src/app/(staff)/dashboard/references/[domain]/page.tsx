@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { Suspense, use } from 'react';
 import { AppShell } from '@/modules/batches';
 import { DomainRecords } from '@/modules/reference-admin';
 
@@ -13,7 +13,9 @@ export default function ReferenceDomainPage({
 
   return (
     <AppShell title="Reference data" basePath="/dashboard">
-      <DomainRecords domainSlug={domain} />
+      <Suspense fallback={<p className="text-sm text-slate-600">Loading…</p>}>
+        <DomainRecords domainSlug={domain} />
+      </Suspense>
     </AppShell>
   );
 }

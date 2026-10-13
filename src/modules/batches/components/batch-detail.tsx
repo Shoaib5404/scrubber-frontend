@@ -1,9 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
-import { getBatch, listBatchClaims, validateBatch } from '../api';
-import type { BatchStatistics, BatchSummary, ClaimSummary, LaravelPaginator } from '../types';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { canUploadOrValidate, useAuthStore } from '@/modules/auth';
+import { getBatch, getBatchStatus, listBatchClaims, validateBatch } from '../api';
+import {
+  isBatchStatusPollable,
+  isBatchStatusTerminal,
+  type BatchStatistics,
+  type BatchSummary,
+  type ClaimSummary,
+  type LengthAwarePaginator,
+} from '../types';
 import { AsyncState, friendlyError } from './async-state';
 import { ClaimStatusBadge, StatusBadge } from './status-badge';
 
@@ -13,17 +21,23 @@ type BatchDetailProps = {
 };
 
 export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
+  const user = useAuthStore((s) => s.user);
+  const canValidate = canUploadOrValidate(user);
   const [batch, setBatch] = useState<BatchSummary | null>(null);
   const [stats, setStats] = useState<BatchStatistics | null>(null);
-  const [claims, setClaims] = useState<LaravelPaginator<ClaimSummary> | null>(null);
+  const [claims, setClaims] = useState<LengthAwarePaginator<ClaimSummary> | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
+  const [pollLabel, setPollLabel] = useState<string | null>(null);
+  const reloadClaimsAfterTerminal = useRef(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { quiet?: boolean }) => {
+    if (!opts?.quiet) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [detail, claimPage] = await Promise.all([
@@ -37,7 +51,9 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
       setError(friendlyError(err));
       setBatch(null);
     } finally {
-      setLoading(false);
+      if (!opts?.quiet) {
+        setLoading(false);
+      }
     }
   }, [batchId, page]);
 
@@ -45,13 +61,78 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!batch || !isBatchStatusPollable(batch.status)) {
+      setPollLabel(null);
+      return;
+    }
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const pollData = await getBatchStatus(batchId);
+        if (cancelled) return;
+        setPollLabel(pollData.label);
+        setBatch((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: pollData.status,
+                total_claims: pollData.total_claims,
+                valid_claims: pollData.valid_claims,
+                error_claims: pollData.error_claims,
+                warning_claims: pollData.warning_claims,
+              }
+            : prev,
+        );
+        setStats((prev) =>
+          prev
+            ? {
+                ...prev,
+                total_claims: pollData.total_claims,
+                valid_claims: pollData.valid_claims,
+                error_claims: pollData.error_claims,
+                warning_claims: pollData.warning_claims,
+                pending_claims: pollData.pending_claims,
+              }
+            : prev,
+        );
+
+        if (isBatchStatusTerminal(pollData.status) || pollData.status === 'parsed') {
+          if (reloadClaimsAfterTerminal.current || isBatchStatusTerminal(pollData.status)) {
+            reloadClaimsAfterTerminal.current = false;
+            await load({ quiet: true });
+          }
+        }
+      } catch {
+        // Keep last known state; next tick retries.
+      }
+    };
+
+    void poll();
+    const timer = window.setInterval(() => {
+      void poll();
+    }, 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [batch?.status, batchId, load]);
+
   async function onValidate(force = false) {
     setActionBusy(true);
     setActionMsg(null);
     try {
-      const { body } = await validateBatch(batchId, force);
-      setActionMsg(body.message ?? `Validation status: ${body.data.status}`);
-      await load();
+      const { httpStatus, body } = await validateBatch(batchId, force);
+      if (httpStatus === 202 || body.data.status === 'under_processing') {
+        reloadClaimsAfterTerminal.current = true;
+        setActionMsg(
+          body.message ?? 'Validation queued. Status will update automatically.',
+        );
+      } else {
+        setActionMsg(body.message ?? `Validation status: ${body.data.status}`);
+      }
+      await load({ quiet: true });
     } catch (err) {
       setActionMsg(friendlyError(err));
     } finally {
@@ -79,24 +160,49 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={actionBusy}
-                  onClick={() => void onValidate(false)}
-                  className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                <Link
+                  href={`${basePath}/batches/${batchId}/edi`}
+                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
                 >
-                  {actionBusy ? 'Working…' : 'Run / check validation'}
-                </button>
-                <button
-                  type="button"
-                  disabled={actionBusy}
-                  onClick={() => void onValidate(true)}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-60"
-                >
-                  Force re-validate
-                </button>
+                  View EDI
+                </Link>
+                {canValidate ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={actionBusy}
+                      onClick={() => void onValidate(false)}
+                      className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                    >
+                      {actionBusy ? 'Working…' : 'Run / check validation'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={actionBusy}
+                      onClick={() => void onValidate(true)}
+                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-60"
+                    >
+                      Force re-validate
+                    </button>
+                  </>
+                ) : null}
               </div>
             </div>
+
+            {isBatchStatusPollable(batch.status) ? (
+              <div
+                className="mt-3 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-900"
+                role="status"
+                data-testid="batch-status-poll-banner"
+              >
+                {batch.status === 'validating'
+                  ? 'Validation in progress…'
+                  : 'Processing…'}{' '}
+                <span className="text-indigo-700">
+                  ({pollLabel ?? batch.status}) — refreshing every 3s
+                </span>
+              </div>
+            ) : null}
 
             {actionMsg ? (
               <p className="mt-3 text-sm text-slate-700" role="status" data-testid="validate-message">
@@ -122,6 +228,56 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
                 ))}
               </dl>
             ) : null}
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2" data-testid="isa-gs-envelope">
+              <section
+                className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+                aria-labelledby="isa-heading"
+              >
+                <h3 id="isa-heading" className="mb-3 text-base font-semibold text-slate-900">
+                  Interchange (ISA)
+                </h3>
+                <dl className="space-y-2 text-sm">
+                  {(
+                    [
+                      ['Sender ID', batch.isa_sender_id],
+                      ['Receiver ID', batch.isa_receiver_id],
+                      ['Control #', batch.isa_control_number],
+                      ['ISA Date', batch.isa_date],
+                      ['BHT Date', batch.bht_date],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-4">
+                      <dt className="text-slate-500">{label}</dt>
+                      <dd className="font-medium text-slate-900">{value ?? '—'}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+              <section
+                className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+                aria-labelledby="gs-heading"
+              >
+                <h3 id="gs-heading" className="mb-3 text-base font-semibold text-slate-900">
+                  Functional Group (GS)
+                </h3>
+                <dl className="space-y-2 text-sm">
+                  {(
+                    [
+                      ['Sender Code', batch.gs_sender_code],
+                      ['Receiver Code', batch.gs_receiver_code],
+                      ['Control #', batch.gs_control_number],
+                      ['Version', batch.gs_version_code ?? batch.gs_version],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div key={label} className="flex justify-between gap-4">
+                      <dt className="text-slate-500">{label}</dt>
+                      <dd className="font-medium text-slate-900">{value ?? '—'}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            </div>
 
             <section className="mt-8" aria-labelledby="claims-heading">
               <div className="mb-3 flex items-center justify-between">
