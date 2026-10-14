@@ -83,31 +83,31 @@ function RecordFormModalBody({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="record-form-title"
     >
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <h2 id="record-form-title" className="text-base font-semibold text-slate-900">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-white shadow-lg">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 id="record-form-title" className="text-base font-semibold text-foreground">
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
+            className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted"
           >
             Close
           </button>
         </div>
 
         {mode === 'view' && initialRow ? (
-          <dl className="divide-y divide-slate-100 px-4 py-2 text-sm">
+          <dl className="divide-y divide-border px-4 py-2 text-sm">
             {columnKeysFromItems([initialRow]).map((key) => (
               <div key={key} className="grid grid-cols-3 gap-2 py-2">
-                <dt className="font-medium text-slate-500">{key}</dt>
-                <dd className="col-span-2 break-all text-slate-900">
+                <dt className="font-medium text-muted-foreground">{key}</dt>
+                <dd className="col-span-2 break-all text-foreground">
                   {formatCellValue(initialRow[key])}
                 </dd>
               </div>
@@ -123,7 +123,7 @@ function RecordFormModalBody({
           >
             {fields.map((field) => (
               <label key={field.key} className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">
+                <span className="mb-1 block font-medium text-foreground/90">
                   {field.label}
                   {field.required ? ' *' : ''}
                 </span>
@@ -134,7 +134,7 @@ function RecordFormModalBody({
                       setValues((prev) => ({ ...prev, [field.key]: ev.target.value }))
                     }
                     rows={3}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                    className="w-full rounded-md border border-border px-3 py-2 text-foreground"
                   />
                 ) : field.type === 'boolean' ? (
                   <select
@@ -142,7 +142,7 @@ function RecordFormModalBody({
                     onChange={(ev) =>
                       setValues((prev) => ({ ...prev, [field.key]: ev.target.value }))
                     }
-                    className="w-full rounded-md border border-slate-300 px-3 py-2"
+                    className="w-full rounded-md border border-border px-3 py-2"
                   >
                     <option value="true">Yes</option>
                     <option value="false">No</option>
@@ -155,7 +155,7 @@ function RecordFormModalBody({
                     onChange={(ev) =>
                       setValues((prev) => ({ ...prev, [field.key]: ev.target.value }))
                     }
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900"
+                    className="w-full rounded-md border border-border px-3 py-2 text-foreground"
                   />
                 )}
               </label>
@@ -164,14 +164,14 @@ function RecordFormModalBody({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted/50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-800 disabled:opacity-50"
+                className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
                 {saving ? 'Saving…' : mode === 'create' ? 'Create' : 'Save'}
               </button>

@@ -20,7 +20,7 @@ test.describe('auth', () => {
     await page.getByLabel('Password').fill(password);
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.getByRole('heading', { name: 'Staff dashboard' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Batches' })).toBeVisible();
   });
 
   test('customer login lands on portal', async ({ page }) => {
@@ -29,7 +29,7 @@ test.describe('auth', () => {
     await page.getByLabel('Password').fill(password);
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/\/portal/);
-    await expect(page.getByRole('heading', { name: 'Customer portal' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Batches' })).toBeVisible();
   });
 
   test('dashboard fails closed when anonymous', async ({ page }) => {

@@ -1,6 +1,11 @@
 import { apiRequest, apiRequestWithMeta } from '@/lib/api';
 import { getApiBaseUrl } from '@/lib/api/config';
-import { ApiClientError, networkError } from '@/lib/api/errors';
+import {
+  ApiClientError,
+  networkError,
+  normalizeApiErrorPayload,
+  type ApiErrorPayload,
+} from '@/lib/api/errors';
 import { refreshAccessToken } from '@/lib/auth/session-refresh';
 import { tokenManager } from '@/lib/auth/token-manager';
 import {
@@ -108,9 +113,10 @@ export async function putEdiToStorage(
       }
       reject(
         new ApiClientError(
-          `Storage upload failed (${xhr.status})`,
+          "We couldn't upload the file. Please try again.",
           xhr.status,
-          'MinIO PUT failed',
+          "We couldn't upload the file. Please try again.",
+          { code: 'FILE_UPLOAD_FAILED', retryable: xhr.status >= 500 || xhr.status === 0 },
         ),
       );
     };
@@ -261,17 +267,17 @@ export async function fetchBatchEdiViewer(
   }
 
   if (!response.ok) {
-    let title = response.statusText || 'Failed to load EDI file';
+    let payload: ApiErrorPayload = {};
     try {
-      const payload = (await response.json()) as {
-        title?: string;
-        detail?: string;
-        message?: string;
-      };
-      title = payload.title ?? payload.detail ?? payload.message ?? title;
+      payload = (await response.json()) as ApiErrorPayload;
     } catch {
       // non-JSON error body
     }
+    const normalized = normalizeApiErrorPayload(payload, {
+      status: response.status,
+      statusText: response.statusText || 'Failed to load EDI file',
+    });
+    const detectionMessage = normalized.rawMessage ?? normalized.userMessage;
 
     if (response.status === 401 && !alreadyRetried) {
       const refreshed = await refreshAccessToken();
@@ -280,9 +286,9 @@ export async function fetchBatchEdiViewer(
       }
       if (
         typeof window !== 'undefined' &&
-        (title === ACCOUNT_DEACTIVATED_MESSAGE ||
-          title.toLowerCase().includes('account has been deactivated') ||
-          title.toLowerCase().includes('account is inactive'))
+        (detectionMessage === ACCOUNT_DEACTIVATED_MESSAGE ||
+          detectionMessage.toLowerCase().includes('account has been deactivated') ||
+          detectionMessage.toLowerCase().includes('account is inactive'))
       ) {
         try {
           sessionStorage.setItem(AUTH_REASON_STORAGE_KEY, 'deactivated');
@@ -294,7 +300,7 @@ export async function fetchBatchEdiViewer(
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('scrubber:auth-expired'));
       }
-      throw new ApiClientError(title, response.status, title);
+      throw ApiClientError.fromNormalized(normalized);
     }
 
     if (response.status === 401 && alreadyRetried) {
@@ -305,7 +311,7 @@ export async function fetchBatchEdiViewer(
     }
 
     // 403: keep session — viewer forbidden is not a logout.
-    throw new ApiClientError(title, response.status, title);
+    throw ApiClientError.fromNormalized(normalized);
   }
 
   const disposition = response.headers.get('Content-Disposition') ?? '';

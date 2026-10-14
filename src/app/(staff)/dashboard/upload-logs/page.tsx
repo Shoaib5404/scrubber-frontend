@@ -29,10 +29,10 @@ export default function UploadLogsPage() {
   return (
     <RequireAuth staffOnly>
       <AppShell title="Upload logs" basePath="/dashboard">
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <table className="mt-4 w-full text-left text-sm" data-testid="upload-logs-table">
           <thead>
-            <tr className="border-b border-slate-200 text-slate-600">
+            <tr className="border-b border-border text-muted-foreground">
               <th className="py-2 pr-3">File</th>
               <th className="py-2 pr-3">Status</th>
               <th className="py-2 pr-3">Error</th>
@@ -41,7 +41,7 @@ export default function UploadLogsPage() {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="border-b border-slate-100 align-top">
+              <tr key={r.id} className="border-b border-border align-top">
                 <td className="py-2 pr-3">{r.original_filename ?? '—'}</td>
                 <td className="py-2 pr-3">{r.status}</td>
                 <td className="py-2 pr-3">{r.error_message ?? r.error_type ?? '—'}</td>

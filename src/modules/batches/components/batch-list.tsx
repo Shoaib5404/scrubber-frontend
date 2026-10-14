@@ -1,7 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { flexRender } from '@tanstack/react-table';
+import {
+  getCoreRowModel,
+  useLegacyTable,
+  type LegacyColumnDef,
+} from '@tanstack/react-table/legacy';
 import { listBatches } from '../api';
 import {
   BATCH_STATUS_FILTERS,
@@ -11,40 +17,80 @@ import {
 } from '../types';
 import { AsyncState, friendlyError } from './async-state';
 import { StatusBadge } from './status-badge';
+import { PaginationControls } from '@/components/layout/pagination-controls';
+import { TableSkeleton } from '@/components/layout/table-skeleton';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 type BatchListProps = {
   basePath: '/portal' | '/dashboard';
   refreshKey?: number;
+  onStats?: (stats: {
+    total: number;
+    inFlight: number;
+    complete: number;
+    error: number;
+  }) => void;
 };
 
-export function BatchList({ basePath, refreshKey = 0 }: BatchListProps) {
+export function BatchList({ basePath, refreshKey = 0, onStats }: BatchListProps) {
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [data, setData] = useState<LengthAwarePaginator<BatchSummary> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (opts?: { quiet?: boolean }) => {
-    if (!opts?.quiet) {
-      setLoading(true);
-    }
-    setError(null);
-    try {
-      const result = await listBatches({
-        page,
-        per_page: 15,
-        status: statusFilter || undefined,
-      });
-      setData(result);
-    } catch (err) {
-      setError(friendlyError(err));
-      setData(null);
-    } finally {
+  const load = useCallback(
+    async (opts?: { quiet?: boolean }) => {
       if (!opts?.quiet) {
-        setLoading(false);
+        setLoading(true);
       }
-    }
-  }, [page, statusFilter]);
+      setError(null);
+      try {
+        const result = await listBatches({
+          page,
+          per_page: 15,
+          status: statusFilter === 'all' ? undefined : statusFilter,
+        });
+        setData(result);
+        if (onStats && page === 1 && statusFilter === 'all') {
+          const rows = result.data;
+          onStats({
+            total: result.total,
+            inFlight: rows.filter((b) => isBatchStatusPollable(b.status)).length,
+            complete: rows.filter((b) =>
+              ['validation_complete', 'validated', 'exported', 'completed'].includes(
+                b.status.toLowerCase(),
+              ),
+            ).length,
+            error: rows.filter((b) => b.status.toLowerCase().includes('error')).length,
+          });
+        }
+      } catch (err) {
+        setError(friendlyError(err));
+        setData(null);
+      } finally {
+        if (!opts?.quiet) {
+          setLoading(false);
+        }
+      }
+    },
+    [page, statusFilter, onStats],
+  );
 
   useEffect(() => {
     void load();
@@ -59,36 +105,103 @@ export function BatchList({ basePath, refreshKey = 0 }: BatchListProps) {
     return () => window.clearInterval(timer);
   }, [data, load]);
 
+  const columns = useMemo<LegacyColumnDef<BatchSummary>[]>(
+    () => [
+      {
+        accessorKey: 'original_filename',
+        header: 'File',
+        cell: ({ row }) => (
+          <div>
+            <Link
+              href={`${basePath}/batches/${row.original.id}`}
+              className="font-medium text-foreground underline-offset-2 hover:underline"
+              data-testid={`batch-link-${row.original.id}`}
+            >
+              {row.original.original_filename}
+            </Link>
+            <div className="text-xs text-muted-foreground tabular-nums">#{row.original.id}</div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'status',
+        header: 'Stage',
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+      {
+        accessorKey: 'total_claims',
+        header: 'Claims',
+        cell: ({ row }) => (
+          <span className="tabular-nums text-muted-foreground">{row.original.total_claims}</span>
+        ),
+      },
+      {
+        accessorKey: 'created_at',
+        header: 'Created',
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {new Date(row.original.created_at).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        id: 'edi',
+        header: 'EDI',
+        cell: ({ row }) => (
+          <Link
+            href={`${basePath}/batches/${row.original.id}/edi`}
+            className="text-sm font-medium text-primary underline-offset-2 hover:underline"
+            title="Open EDI file"
+            data-testid={`batch-edi-${row.original.id}`}
+          >
+            View
+          </Link>
+        ),
+      },
+    ],
+    [basePath],
+  );
+
+  const table = useLegacyTable({
+    data: data?.data ?? [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
   return (
-    <section aria-labelledby="batch-list-heading">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 id="batch-list-heading" className="text-base font-semibold text-slate-900">
+    <section aria-labelledby="batch-list-heading" className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+        <h2 id="batch-list-heading" className="text-base font-semibold text-foreground">
           Batches
         </h2>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <span>Status</span>
-            <select
+          <div className="flex items-center gap-2">
+            <Label htmlFor="batch-status-filter" className="text-muted-foreground">
+              Status
+            </Label>
+            <Select
               value={statusFilter}
-              onChange={(e) => {
+              onValueChange={(value) => {
                 setPage(1);
-                setStatusFilter(e.target.value);
+                setStatusFilter(value ?? 'all');
               }}
-              className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
-              data-testid="batch-status-filter"
             >
-              {BATCH_STATUS_FILTERS.map((opt) => (
-                <option key={opt.value || 'all'} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {data ? (
-            <p className="text-xs text-slate-500" data-testid="batch-pagination">
-              Page {data.current_page} of {data.last_page} · {data.total} total
-            </p>
-          ) : null}
+              <SelectTrigger
+                id="batch-status-filter"
+                className="w-[180px]"
+                data-testid="batch-status-filter"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BATCH_STATUS_FILTERS.map((opt) => (
+                  <SelectItem key={opt.value || 'all'} value={opt.value || 'all'}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -96,76 +209,49 @@ export function BatchList({ basePath, refreshKey = 0 }: BatchListProps) {
         loading={loading}
         error={error}
         empty={!loading && !!data && data.data.length === 0}
-        emptyMessage="No batches yet. Upload an EDI file to get started."
+        emptyTitle="No batches yet"
+        emptyMessage="Upload an EDI file to get started."
         onRetry={() => void load()}
+        skeleton={<TableSkeleton rows={8} columns={5} />}
       >
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">File</th>
-                <th className="px-4 py-3 font-medium">Stage</th>
-                <th className="px-4 py-3 font-medium">Claims</th>
-                <th className="px-4 py-3 font-medium">Created</th>
-                <th className="px-4 py-3 font-medium">EDI</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {data?.data.map((batch) => (
-                <tr key={batch.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`${basePath}/batches/${batch.id}`}
-                      className="font-medium text-slate-900 underline-offset-2 hover:underline"
-                      data-testid={`batch-link-${batch.id}`}
-                    >
-                      {batch.original_filename}
-                    </Link>
-                    <div className="text-xs text-slate-500">#{batch.id}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={batch.status} />
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">{batch.total_claims}</td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {new Date(batch.created_at).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`${basePath}/batches/${batch.id}/edi`}
-                      className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline"
-                      title="Open EDI file"
-                      data-testid={`batch-edi-${batch.id}`}
-                    >
-                      View
-                    </Link>
-                  </td>
-                </tr>
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  ))}
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {data ? (
+            <PaginationControls
+              page={data.current_page}
+              lastPage={data.last_page}
+              total={data.total}
+              onPageChange={setPage}
+              className="px-3"
+              data-testid="batch-pagination"
+            />
+          ) : null}
         </div>
-
-        {data && data.last_page > 1 ? (
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              disabled={page >= data.last_page}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        ) : null}
       </AsyncState>
     </section>
   );

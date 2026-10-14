@@ -43,7 +43,7 @@ export default function EditUserPage() {
     <RequireAuth staffOnly>
       <AppShell title="Edit user" basePath="/dashboard">
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
-        {!error && !user ? <p className="text-sm text-slate-600">Loading…</p> : null}
+        {!error && !user ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
         {user ? <UserForm mode="edit" user={user} /> : null}
       </AppShell>
     </RequireAuth>

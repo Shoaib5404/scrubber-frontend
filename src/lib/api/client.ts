@@ -5,7 +5,12 @@ import {
 import { refreshAccessToken } from '@/lib/auth/session-refresh';
 import { tokenManager } from '@/lib/auth/token-manager';
 import { getApiBaseUrl } from './config';
-import { ApiClientError, networkError } from './errors';
+import {
+  ApiClientError,
+  networkError,
+  normalizeApiErrorPayload,
+  type ApiErrorPayload,
+} from './errors';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -48,42 +53,20 @@ function clearAuthSession(message: string): void {
   }
 }
 
-function errorTitleFromPayload(
-  payload: {
-    title?: string;
-    detail?: string;
-    message?: string | string[];
-  },
-  fallback: string,
-): string {
-  if (payload.title) {
-    return payload.title;
-  }
-  if (payload.detail) {
-    return payload.detail;
-  }
-  if (Array.isArray(payload.message)) {
-    return payload.message.join(', ');
-  }
-  if (typeof payload.message === 'string') {
-    return payload.message;
-  }
-  return fallback;
-}
-
-async function readErrorTitle(response: Response): Promise<string> {
-  let title = response.statusText;
+async function readNormalizedError(response: Response): Promise<ApiClientError> {
+  let payload: ApiErrorPayload = {};
   try {
-    const payload = (await response.json()) as {
-      title?: string;
-      detail?: string;
-      message?: string | string[];
-    };
-    title = errorTitleFromPayload(payload, title);
+    payload = (await response.json()) as ApiErrorPayload;
   } catch {
-    // ignore JSON parse errors
+    // Non-JSON bodies fall back to status text / safe defaults.
   }
-  return title;
+
+  const normalized = normalizeApiErrorPayload(payload, {
+    status: response.status,
+    statusText: response.statusText,
+  });
+
+  return ApiClientError.fromNormalized(normalized);
 }
 
 async function parseSuccessBody<T>(response: Response): Promise<T> {
@@ -94,9 +77,10 @@ async function parseSuccessBody<T>(response: Response): Promise<T> {
   const text = await response.text();
   if (!text.trim()) {
     throw new ApiClientError(
-      `Empty response body (HTTP ${response.status})`,
+      'The server returned an empty response. Please try again.',
       response.status,
-      'Empty response body',
+      'The server returned an empty response. Please try again.',
+      { code: 'EMPTY_RESPONSE' },
     );
   }
 
@@ -104,9 +88,10 @@ async function parseSuccessBody<T>(response: Response): Promise<T> {
     return JSON.parse(text) as T;
   } catch {
     throw new ApiClientError(
-      `Invalid JSON response (HTTP ${response.status})`,
+      'The server returned an unexpected response. Please try again.',
       response.status,
-      'Invalid JSON response',
+      'The server returned an unexpected response. Please try again.',
+      { code: 'INVALID_JSON_RESPONSE' },
     );
   }
 }
@@ -156,29 +141,30 @@ async function handleFailedResponse(
   options: ApiRequestOptions,
   alreadyRetried: boolean,
 ): Promise<'retry'> {
-  const title = await readErrorTitle(response);
+  const error = await readNormalizedError(response);
+  const detectionMessage = error.rawMessage ?? error.title ?? error.message;
 
   if (response.status === 401 && !options.skipAuth && !alreadyRetried) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
       return 'retry';
     }
-    clearAuthSession(title);
-    throw new ApiClientError(title, response.status, title);
+    clearAuthSession(detectionMessage);
+    throw error;
   }
 
   if (response.status === 401 && !options.skipAuth && alreadyRetried) {
-    clearAuthSession(title);
-    throw new ApiClientError(title, response.status, title);
+    clearAuthSession(detectionMessage);
+    throw error;
   }
 
   // Public endpoints (login etc.): surface error, do not wipe tokens.
   // 403: permission/feature denial — keep session unless account deactivated.
-  if (response.status === 403 && isAccountDeactivatedMessage(title)) {
-    clearAuthSession(title);
+  if (response.status === 403 && isAccountDeactivatedMessage(detectionMessage)) {
+    clearAuthSession(detectionMessage);
   }
 
-  throw new ApiClientError(title, response.status, title);
+  throw error;
 }
 
 export async function apiRequest<T>(
@@ -225,9 +211,20 @@ export async function apiRequestWithMeta<T>(
 export async function fetchApiHealth(): Promise<{ status: string }> {
   const apiBase = getApiBaseUrl();
   const origin = apiBase.replace(/\/api\/v1\/?$/, '');
-  const response = await fetch(`${origin}/health`);
-  if (!response.ok) {
-    throw new ApiClientError('Health check failed', response.status);
+  try {
+    const response = await fetch(`${origin}/health`);
+    if (!response.ok) {
+      throw new ApiClientError(
+        'API health check failed. Please try again.',
+        response.status,
+        'API health check failed. Please try again.',
+      );
+    }
+    return (await response.json()) as { status: string };
+  } catch (error) {
+    if (error instanceof ApiClientError) {
+      throw error;
+    }
+    throw networkError(error);
   }
-  return (await response.json()) as { status: string };
 }

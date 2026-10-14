@@ -55,12 +55,12 @@ export function CptDetailView({ code }: { code: string }) {
   return (
     <div>
       <p className="mb-4 text-sm">
-        <Link href="/search" className="text-slate-600 underline-offset-2 hover:underline">
+        <Link href="/search" className="text-muted-foreground underline-offset-2 hover:underline">
           ← Back to search
         </Link>
       </p>
 
-      {loading ? <p className="text-sm text-slate-600">Loading…</p> : null}
+      {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
       {error ? (
         <p className="text-sm text-red-700" role="alert">
           {error}
@@ -69,9 +69,9 @@ export function CptDetailView({ code }: { code: string }) {
 
       {summary ? (
         <>
-          <h2 className="text-xl font-semibold text-slate-900">{summary.code}</h2>
-          <p className="mt-1 text-sm text-slate-600">{summary.description ?? 'No description'}</p>
-          <p className="mt-2 text-xs text-slate-500">
+          <h2 className="text-xl font-semibold text-foreground">{summary.code}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{summary.description ?? 'No description'}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
             {summary.status}
             {summary.effective_date ? ` · Effective ${summary.effective_date}` : ''}
           </p>
@@ -84,8 +84,8 @@ export function CptDetailView({ code }: { code: string }) {
                 onClick={() => setTab(t.key)}
                 className={`rounded-md px-2.5 py-1 text-xs ${
                   tab === t.key
-                    ? 'bg-slate-900 text-white'
-                    : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border border-border bg-white text-foreground/90 hover:bg-muted/50'
                 }`}
               >
                 {t.label}
@@ -94,12 +94,12 @@ export function CptDetailView({ code }: { code: string }) {
           </div>
 
           {payload ? (
-            <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="mt-4 overflow-x-auto rounded-lg border border-border bg-white shadow-sm">
               {payload.message ? (
-                <p className="px-4 py-3 text-sm text-slate-600">{payload.message}</p>
+                <p className="px-4 py-3 text-sm text-muted-foreground">{payload.message}</p>
               ) : null}
-              <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <table className="min-w-full divide-y divide-border text-left text-sm">
+                <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     {payload.columns.map((c) => (
                       <th key={c.key} className="px-3 py-2 font-medium">
@@ -108,11 +108,11 @@ export function CptDetailView({ code }: { code: string }) {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {payload.rows.length === 0 ? (
                     <tr>
                       <td
-                        className="px-3 py-3 text-slate-500"
+                        className="px-3 py-3 text-muted-foreground"
                         colSpan={Math.max(1, payload.columns.length)}
                       >
                         No rows for this tab.
@@ -122,7 +122,7 @@ export function CptDetailView({ code }: { code: string }) {
                     payload.rows.map((row, idx) => (
                       <tr key={idx}>
                         {payload.columns.map((c) => (
-                          <td key={c.key} className="px-3 py-2 text-slate-800">
+                          <td key={c.key} className="px-3 py-2 text-foreground">
                             {String(row[c.key] ?? '—')}
                           </td>
                         ))}
@@ -131,7 +131,7 @@ export function CptDetailView({ code }: { code: string }) {
                   )}
                 </tbody>
               </table>
-              <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">
+              <p className="border-t border-slate-100 px-3 py-2 text-xs text-muted-foreground">
                 Page {payload.pagination.current_page} of {payload.pagination.last_page} ·{' '}
                 {payload.pagination.total} total
               </p>

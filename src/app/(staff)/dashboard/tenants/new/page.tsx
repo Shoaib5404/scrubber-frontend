@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2Icon } from 'lucide-react';
 import { Permission, hasPermission, useAuthStore } from '@/modules/auth';
 import { AppShell } from '@/modules/batches';
 import {
@@ -12,6 +13,11 @@ import {
   withImpliedApiAccess,
   type TenantFeatureMeta,
 } from '@/modules/tenants-admin';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function NewTenantPage() {
   const router = useRouter();
@@ -36,7 +42,9 @@ export default function NewTenantPage() {
   if (!canManage) {
     return (
       <AppShell title="New tenant" basePath="/dashboard">
-        <p className="text-sm text-slate-600">You do not have permission to manage tenants.</p>
+        <Alert>
+          <AlertDescription>You do not have permission to manage tenants.</AlertDescription>
+        </Alert>
       </AppShell>
     );
   }
@@ -74,92 +82,105 @@ export default function NewTenantPage() {
   }
 
   return (
-    <AppShell title="New tenant" basePath="/dashboard">
-      <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4 rounded-md border border-slate-200 bg-white p-6">
-        <div>
-          <label className="block text-sm font-medium text-slate-800">Organization name</label>
-          <input
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-800">Subscription</label>
-          <select
-            value={subscription}
-            onChange={(e) => setSubscription(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-          >
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-        <fieldset>
-          <legend className="text-sm font-medium text-slate-800">Features</legend>
-          <p className="mt-1 text-xs text-slate-500">
-            Selecting Batches API or Reference API also enables API access.
-          </p>
-          <div className="mt-2 space-y-2">
-            {(catalog.length > 0
-              ? catalog
-              : DEFAULT_TENANT_FEATURES.map((value) => ({
-                  value,
-                  label: value,
-                  description: '',
-                  group: '',
-                }))
-            ).map((item) => (
-              <label key={item.value} className="flex items-start gap-2 text-sm text-slate-800">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={features.includes(item.value)}
-                  onChange={() => toggleFeature(item.value)}
-                />
-                <span>
-                  <span className="font-medium">{item.label}</span>
-                  {item.description ? (
-                    <span className="block text-xs text-slate-500">{item.description}</span>
-                  ) : null}
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        <div>
-          <label className="block text-sm font-medium text-slate-800">First admin email</label>
-          <input
-            type="email"
-            value={adminEmail}
-            onChange={(e) => setAdminEmail(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-            placeholder="Optional — sends invite email"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-800">First admin name</label>
-          <input
-            value={adminName}
-            onChange={(e) => setAdminName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-          />
-        </div>
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-          >
-            {loading ? 'Creating…' : 'Create tenant'}
-          </button>
-          <Link href="/dashboard/tenants" className="rounded-md border border-slate-300 px-4 py-2 text-sm">
-            Cancel
-          </Link>
-        </div>
-      </form>
+    <AppShell title="New tenant" description="Create an organization and optional first admin." basePath="/dashboard">
+      <Card className="mx-auto max-w-lg">
+        <CardHeader>
+          <CardTitle className="text-base">Tenant details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={onSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="tenant-name">Organization name</Label>
+              <Input
+                id="tenant-name"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="tenant-subscription">Subscription</Label>
+              <select
+                id="tenant-subscription"
+                value={subscription}
+                onChange={(e) => setSubscription(e.target.value)}
+                className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <fieldset className="flex flex-col gap-2">
+              <legend className="text-sm font-medium text-foreground">Features</legend>
+              <p className="text-xs text-muted-foreground">
+                Selecting Batches API or Reference API also enables API access.
+              </p>
+              {(catalog.length > 0
+                ? catalog
+                : DEFAULT_TENANT_FEATURES.map((value) => ({
+                    value,
+                    label: value,
+                    description: '',
+                    group: '',
+                  }))
+              ).map((item) => (
+                <label key={item.value} className="flex items-start gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    className="mt-1 size-4 rounded border-border"
+                    checked={features.includes(item.value)}
+                    onChange={() => toggleFeature(item.value)}
+                  />
+                  <span>
+                    <span className="font-medium">{item.label}</span>
+                    {item.description ? (
+                      <span className="block text-xs text-muted-foreground">{item.description}</span>
+                    ) : null}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="admin-email">First admin email</Label>
+              <Input
+                id="admin-email"
+                type="email"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                placeholder="Optional — sends invite email"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="admin-name">First admin name</Label>
+              <Input
+                id="admin-name"
+                value={adminName}
+                onChange={(e) => setAdminName(e.target.value)}
+              />
+            </div>
+            {error ? (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
+            <div className="flex gap-3">
+              <Button type="submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2Icon data-icon="inline-start" className="animate-spin" />
+                    Creating…
+                  </>
+                ) : (
+                  'Create tenant'
+                )}
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/tenants">Cancel</Link>
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </AppShell>
   );
 }

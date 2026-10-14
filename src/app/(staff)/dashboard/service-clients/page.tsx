@@ -14,6 +14,7 @@ import {
   type PlatformServiceClient,
   type ServiceClientScopeMeta,
 } from '@/modules/service-clients-admin';
+import { PaginationControls } from '@/components/layout/pagination-controls';
 
 const DEFAULT_SCOPES = ['reference:read'];
 
@@ -52,7 +53,7 @@ export default function ServiceClientsPage() {
   if (!canManage) {
     return (
       <AppShell title="Service clients" basePath="/dashboard">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           You do not have permission to manage platform service clients.
         </p>
       </AppShell>
@@ -101,14 +102,14 @@ export default function ServiceClientsPage() {
 
   return (
     <AppShell title="Service clients" basePath="/dashboard">
-      <p className="mb-4 text-sm text-slate-600">
+      <p className="mb-4 text-sm text-muted-foreground">
         Platform credentials for NeoMD own apps (e.g. TeleWound). Unbound from customer
         tenants — use <code className="text-xs">POST /api/v1/auth/token</code> then call
         APIs with the Bearer token. Customer orgs use Tenants + portal Integrations instead.
       </p>
 
-      {error ? <p className="mb-3 text-sm text-red-700">{error}</p> : null}
-      {message ? <p className="mb-3 text-sm text-emerald-700">{message}</p> : null}
+      {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
+      {message ? <p className="mb-3 text-sm text-success">{message}</p> : null}
 
       {secret ? (
         <div
@@ -129,21 +130,21 @@ export default function ServiceClientsPage() {
 
       <form
         onSubmit={onCreate}
-        className="mb-8 max-w-lg space-y-3 rounded-md border border-slate-200 bg-white p-4"
+        className="mb-8 max-w-lg space-y-3 rounded-md border border-border bg-card p-4"
       >
-        <h2 className="text-sm font-semibold text-slate-900">Create service client</h2>
+        <h2 className="text-sm font-semibold text-foreground">Create service client</h2>
         <label className="block text-sm">
           Name
           <input
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className="mt-1 w-full rounded-md border border-border px-3 py-2"
             placeholder="TeleWound"
           />
         </label>
         <fieldset>
-          <legend className="text-sm font-medium text-slate-800">Scopes</legend>
+          <legend className="text-sm font-medium text-foreground">Scopes</legend>
           <div className="mt-2 space-y-2">
             {(catalog.length > 0
               ? catalog
@@ -153,7 +154,7 @@ export default function ServiceClientsPage() {
                   description: '',
                 }))
             ).map((item) => (
-              <label key={item.value} className="flex items-start gap-2 text-sm text-slate-800">
+              <label key={item.value} className="flex items-start gap-2 text-sm text-foreground">
                 <input
                   type="checkbox"
                   className="mt-1"
@@ -163,7 +164,7 @@ export default function ServiceClientsPage() {
                 <span>
                   <span className="font-medium">{item.label}</span>
                   {item.description ? (
-                    <span className="block text-xs text-slate-500">{item.description}</span>
+                    <span className="block text-xs text-muted-foreground">{item.description}</span>
                   ) : null}
                 </span>
               </label>
@@ -173,15 +174,15 @@ export default function ServiceClientsPage() {
         <button
           type="submit"
           disabled={creating}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground disabled:opacity-60"
         >
           {creating ? 'Creating…' : 'Create'}
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-md border border-border bg-card">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
+          <thead className="border-b border-border bg-muted/50 text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Client ID</th>
@@ -193,14 +194,14 @@ export default function ServiceClientsPage() {
           </thead>
           <tbody>
             {rows.map((c) => (
-              <tr key={c.id} className="border-b border-slate-100">
-                <td className="px-4 py-3 font-medium text-slate-900">{c.name}</td>
+              <tr key={c.id} className="border-b border-border">
+                <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
                 <td className="px-4 py-3 font-mono text-xs break-all">{c.client_id}</td>
-                <td className="px-4 py-3 text-xs text-slate-600">
+                <td className="px-4 py-3 text-xs text-muted-foreground">
                   {Array.isArray(c.scopes) ? c.scopes.join(', ') : '—'}
                 </td>
                 <td className="px-4 py-3">{c.is_active ? 'Yes' : 'No'}</td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="px-4 py-3 text-muted-foreground">
                   {c.last_used_at ? new Date(c.last_used_at).toLocaleString() : 'Never'}
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -237,7 +238,7 @@ export default function ServiceClientsPage() {
                         </button>
                         <button
                           type="button"
-                          className="text-sm text-red-700 underline"
+                          className="text-sm text-destructive underline"
                           onClick={() => {
                             if (!window.confirm(`Revoke ${c.name}?`)) return;
                             void revokeServiceClient(c.id)
@@ -261,7 +262,7 @@ export default function ServiceClientsPage() {
             ))}
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
                   No platform service clients yet.
                 </td>
               </tr>
@@ -270,35 +271,18 @@ export default function ServiceClientsPage() {
         </table>
       </div>
 
-      {lastPage > 1 ? (
-        <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            disabled={page <= 1}
-            className="rounded-md border border-slate-300 px-3 py-1 text-sm disabled:opacity-50"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            Previous
-          </button>
-          <span className="self-center text-sm text-slate-600">
-            Page {page} / {lastPage}
-          </span>
-          <button
-            type="button"
-            disabled={page >= lastPage}
-            className="rounded-md border border-slate-300 px-3 py-1 text-sm disabled:opacity-50"
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </button>
-        </div>
-      ) : null}
+      <PaginationControls
+        page={page}
+        lastPage={lastPage}
+        onPageChange={setPage}
+        className="mt-3 rounded-xl border border-border bg-card px-3 shadow-sm"
+      />
 
-      <p className="mt-6 text-xs text-slate-500">
+      <p className="mt-6 text-xs text-muted-foreground">
         CLI alternative:{' '}
         <code>npx nest-commander reference-api:issue &quot;My App&quot;</code>
       </p>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-muted-foreground">
         <Link href="/dashboard/tenants" className="underline">
           Customer tenants
         </Link>{' '}

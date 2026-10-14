@@ -25,10 +25,17 @@ import type {
 } from '../types';
 import { AsyncState, friendlyError } from './async-state';
 import { ClaimStatusBadge } from './status-badge';
+import { ValidationFindings } from './validation-findings';
 import {
   ValidationIssueModals,
   type ValidationModalName,
 } from './validation-issue-modals';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2Icon } from 'lucide-react';
 
 type ClaimDetailProps = {
   claimId: number;
@@ -269,12 +276,7 @@ function asValidationIssues(raw: unknown): ValidationIssue[] {
   return raw.filter((item): item is ValidationIssue => !!item && typeof item === 'object');
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="mb-1 block text-xs font-medium text-slate-600">{children}</label>;
-}
-
-const inputClass =
-  'w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500';
+const inputClass = 'h-8';
 
 function TextInput({
   label,
@@ -292,9 +294,9 @@ function TextInput({
   placeholder?: string;
 }) {
   return (
-    <div>
-      <FieldLabel>{label}</FieldLabel>
-      <input
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Input
         type={type}
         value={value}
         maxLength={maxLength}
@@ -318,9 +320,13 @@ function SelectField({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div>
-      <FieldLabel>{label}</FieldLabel>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className={inputClass}>
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
         <option value="">Select</option>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -334,8 +340,8 @@ function SelectField({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-4 border-t border-slate-200 pt-6 first:border-t-0 first:pt-0">
-      <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+    <section className="flex flex-col gap-4">
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
       {children}
     </section>
   );
@@ -555,12 +561,12 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
         {claim ? (
           <Link
             href={`${basePath}/batches/${claim.batch_file_id}`}
-            className="text-slate-600 underline-offset-2 hover:underline"
+            className="text-muted-foreground underline-offset-2 hover:underline"
           >
             ← Back to batch
           </Link>
         ) : (
-          <Link href={basePath} className="text-slate-600 underline-offset-2 hover:underline">
+          <Link href={basePath} className="text-muted-foreground underline-offset-2 hover:underline">
             ← Back
           </Link>
         )}
@@ -578,102 +584,48 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold">Edit Claim: {claim.claim_id}</h2>
-                <p className="mt-1 text-sm text-slate-600">Claim #{claim.id}</p>
+                <p className="mt-1 text-sm text-muted-foreground tabular-nums">Claim #{claim.id}</p>
                 <div className="mt-2">
                   <ClaimStatusBadge status={claim.status} />
                 </div>
               </div>
+              <Button type="submit" disabled={busy}>
+                {busy ? (
+                  <>
+                    <Loader2Icon data-icon="inline-start" className="animate-spin" />
+                    Saving…
+                  </>
+                ) : canValidate ? (
+                  'Validate'
+                ) : (
+                  'Save'
+                )}
+              </Button>
             </div>
 
             {message ? (
-              <p
-                className={
-                  messageTone === 'success'
-                    ? 'rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800'
-                    : 'rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900'
-                }
-                role="status"
-              >
-                {message}
-              </p>
+              <Alert variant={messageTone === 'success' ? 'default' : 'destructive'}>
+                <AlertDescription>{message}</AlertDescription>
+              </Alert>
             ) : null}
 
-            {validationIssues.length > 0 ? (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 p-4">
-                <h4 className="mb-3 font-semibold text-rose-800">
-                  Validation Issues ({validationIssues.length})
-                </h4>
-                <ul className="space-y-1.5">
-                  {validationIssues.map((issue, idx) => {
-                    const severity = issue.severity ?? 'error';
-                    const badge =
-                      severity === 'error'
-                        ? 'bg-rose-200 text-rose-800'
-                        : severity === 'info'
-                          ? 'bg-sky-200 text-sky-800'
-                          : 'bg-amber-200 text-amber-800';
-                    const label =
-                      severity === 'error' ? 'ERROR' : severity === 'info' ? 'INFO' : 'WARN';
-                    const showNcciHelp = Boolean(issue.help_text);
-                    const showCerumen =
-                      issue.policy_modal === 'cerumen-plan-policy';
-                    return (
-                      <li key={`${issue.field ?? 'f'}-${idx}`} className="flex items-start gap-2 text-sm">
-                        <span className={`rounded px-2 py-0.5 text-xs font-medium ${badge}`}>
-                          {label}
-                        </span>
-                        <span className="text-slate-700">
-                          <strong>
-                            {issue.field ?? 'Unknown'}
-                            {issue.rule ? ` (${issue.rule})` : ''}:
-                          </strong>{' '}
-                          {issue.message ?? 'Validation failed'}
-                          {showNcciHelp ? (
-                            <>
-                              {' '}
-                              <button
-                                type="button"
-                                className="font-medium text-slate-900 underline"
-                                onClick={() => setOpenModal('ncci-bypass-modifiers')}
-                              >
-                                Click here
-                              </button>
-                            </>
-                          ) : null}
-                          {showCerumen ? (
-                            <>
-                              {' '}
-                              <button
-                                type="button"
-                                className="font-medium text-slate-900 underline"
-                                onClick={() => setOpenModal('cerumen-plan-policy')}
-                              >
-                                Click here
-                              </button>
-                            </>
-                          ) : null}
-                          {issue.details_url ? (
-                            <>
-                              {' '}
-                              <a
-                                href={issue.details_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-slate-900 underline"
-                              >
-                                details
-                              </a>
-                            </>
-                          ) : null}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ) : null}
+            <ValidationFindings
+              issues={validationIssues}
+              onOpenHelp={(modal) => setOpenModal(modal)}
+            />
 
-            <div className="space-y-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-xl border border-border bg-card p-4 shadow-sm md:p-6">
+              <Tabs defaultValue="patient">
+                <TabsList variant="line" className="mb-4 w-full flex-wrap justify-start">
+                  <TabsTrigger value="patient">Patient</TabsTrigger>
+                  <TabsTrigger value="cob">COB</TabsTrigger>
+                  <TabsTrigger value="providers">Providers</TabsTrigger>
+                  <TabsTrigger value="dates">Dates</TabsTrigger>
+                  <TabsTrigger value="diagnoses">Diagnoses</TabsTrigger>
+                  <TabsTrigger value="lines">Service lines</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="patient" className="flex flex-col gap-6">
               <Section title="Patient Demographics">
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
                   <TextInput
@@ -829,12 +781,14 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                   />
                 </div>
               </Section>
+                </TabsContent>
 
+                <TabsContent value="cob" className="flex flex-col gap-6">
               <Section title="Other Subscriber (COB)">
                 {cobRows.map((row, index) => (
                   <div key={`cob-${index}`} className={index > 0 ? 'mt-4' : undefined}>
                     {index > 0 ? (
-                      <h4 className="mb-3 text-sm font-semibold text-slate-800">
+                      <h4 className="mb-3 text-sm font-semibold text-foreground">
                         Other Subscriber #{index + 1}
                       </h4>
                     ) : null}
@@ -905,16 +859,19 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                   </div>
                 ))}
                 <div className="mt-3">
-                  <button
+                  <Button
                     type="button"
-                    className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline"
+                    variant="link"
+                    className="h-auto px-0"
                     onClick={() => setCobRows((prev) => [...prev, { ...EMPTY_COB }])}
                   >
                     + Add other subscriber
-                  </button>
+                  </Button>
                 </div>
               </Section>
+                </TabsContent>
 
+                <TabsContent value="providers" className="flex flex-col gap-6">
               <Section title="Billing Provider Information">
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                   <div className="md:col-span-3">
@@ -1088,7 +1045,9 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                   />
                 </div>
               </Section>
+                </TabsContent>
 
+                <TabsContent value="dates" className="flex flex-col gap-6">
               <Section title="Claim Level Dates">
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
                   {CLAIM_LEVEL_DATE_FIELDS.map((field) => (
@@ -1102,36 +1061,42 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                   ))}
                 </div>
               </Section>
+                </TabsContent>
 
+                <TabsContent value="diagnoses" className="flex flex-col gap-6">
               <Section title="Diagnosis">
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   {diagnoses.map((dx, index) => (
                     <div key={dx.id ?? `new-${index}`} className="flex flex-wrap items-center gap-2">
-                      <span className="w-6 text-sm text-slate-400">{dx.sequence}</span>
-                      <input
+                      <span className="w-6 text-sm text-muted-foreground tabular-nums">
+                        {dx.sequence}
+                      </span>
+                      <Input
                         type="text"
                         value={dx.code}
                         placeholder={dx.id ? 'Code' : 'Search Code'}
                         onChange={(e) => updateDiagnosis(index, { code: e.target.value })}
-                        className={`${inputClass} w-28`}
+                        className="h-8 w-28 font-mono"
                       />
-                      <input
+                      <Input
                         type="text"
                         value={dx.description}
                         placeholder="Description (display only)"
                         onChange={(e) => updateDiagnosis(index, { description: e.target.value })}
-                        className={`${inputClass} min-w-[12rem] flex-1`}
+                        className="h-8 min-w-[12rem] flex-1"
                       />
                     </div>
                   ))}
                 </div>
               </Section>
+                </TabsContent>
 
+                <TabsContent value="lines" className="flex flex-col gap-6">
               <Section title="Procedure">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[72rem] border-separate border-spacing-0 text-sm">
                     <thead>
-                      <tr className="border-b text-xs text-slate-600">
+                      <tr className="border-b text-xs text-muted-foreground">
                         <th className="px-1 pb-2 text-center font-medium">#</th>
                         <th className="px-1 pb-2 text-left font-medium">Procedure Code</th>
                         <th className="px-1 pb-2 text-left font-medium">NDC</th>
@@ -1154,18 +1119,18 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                           key={line.id ?? `new-line-${index}`}
                           className={
                             errorLineNumbers.has(line.line_number)
-                              ? 'bg-rose-50'
+                              ? 'bg-destructive/5'
                               : line.isNew
-                                ? 'bg-slate-50'
+                                ? 'bg-muted/50'
                                 : undefined
                           }
                         >
-                          <td className="px-1 py-1.5 text-center text-xs text-slate-500">
+                          <td className="px-1 py-1.5 text-center text-xs text-muted-foreground tabular-nums">
                             {line.line_number}
                           </td>
                           <td className="px-1 py-1.5">
-                            <input
-                              className={inputClass}
+                            <Input
+                              className="h-8"
                               value={line.procedure_code}
                               placeholder="Enter CPT"
                               onChange={(e) =>
@@ -1174,25 +1139,25 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                             />
                           </td>
                           <td className="px-1 py-1.5">
-                            <input
-                              className={`${inputClass} font-mono`}
+                            <Input
+                              className="h-8 font-mono"
                               value={line.ndc_code}
                               placeholder="00000-0000-00"
                               onChange={(e) => updateLine(index, { ndc_code: e.target.value })}
                             />
                           </td>
                           <td className="px-1 py-1.5">
-                            <input
+                            <Input
                               type="number"
                               step="0.001"
-                              className={inputClass}
+                              className="h-8"
                               value={line.ndc_quantity}
                               onChange={(e) => updateLine(index, { ndc_quantity: e.target.value })}
                             />
                           </td>
                           <td className="px-1 py-1.5">
                             <select
-                              className={inputClass}
+                              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm"
                               value={line.ndc_unit}
                               onChange={(e) => updateLine(index, { ndc_unit: e.target.value })}
                             >
@@ -1205,9 +1170,9 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                             </select>
                           </td>
                           <td className="px-1 py-1.5">
-                            <input
+                            <Input
                               type="date"
-                              className={inputClass}
+                              className="h-8"
                               value={line.service_date_from}
                               onChange={(e) =>
                                 updateLine(index, { service_date_from: e.target.value })
@@ -1215,9 +1180,9 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                             />
                           </td>
                           <td className="px-1 py-1.5">
-                            <input
+                            <Input
                               type="date"
-                              className={inputClass}
+                              className="h-8"
                               value={line.service_date_to}
                               onChange={(e) =>
                                 updateLine(index, { service_date_to: e.target.value })
@@ -1225,16 +1190,16 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                             />
                           </td>
                           <td className="px-1 py-1.5">
-                            <input
-                              className={inputClass}
+                            <Input
+                              className="h-8"
                               value={line.modifiers}
                               placeholder="e.g. 25,59"
                               onChange={(e) => updateLine(index, { modifiers: e.target.value })}
                             />
                           </td>
                           <td className="px-1 py-1.5">
-                            <input
-                              className={inputClass}
+                            <Input
+                              className="h-8"
                               value={line.diagnosis_pointers}
                               onChange={(e) =>
                                 updateLine(index, { diagnosis_pointers: e.target.value })
@@ -1242,17 +1207,17 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                             />
                           </td>
                           <td className="px-1 py-1.5">
-                            <input
+                            <Input
                               type="number"
                               step="0.01"
-                              className={inputClass}
+                              className="h-8"
                               value={line.units}
                               onChange={(e) => updateLine(index, { units: e.target.value })}
                             />
                           </td>
                           <td className="px-1 py-1.5">
                             <select
-                              className={inputClass}
+                              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm"
                               value={line.unit_scale}
                               onChange={(e) => updateLine(index, { unit_scale: e.target.value })}
                             >
@@ -1264,8 +1229,8 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                             </select>
                           </td>
                           <td className="px-1 py-1.5">
-                            <input
-                              className={inputClass}
+                            <Input
+                              className="h-8"
                               maxLength={10}
                               value={line.referring_provider_npi}
                               placeholder="NPI"
@@ -1275,8 +1240,8 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                             />
                           </td>
                           <td className="px-1 py-1.5">
-                            <input
-                              className={inputClass}
+                            <Input
+                              className="h-8"
                               maxLength={100}
                               value={line.referring_provider_last_name}
                               placeholder="Last name"
@@ -1288,10 +1253,10 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                             />
                           </td>
                           <td className="px-1 py-1.5">
-                            <input
+                            <Input
                               type="number"
                               step="0.01"
-                              className={inputClass}
+                              className="h-8"
                               value={line.other_payer_paid_amount}
                               placeholder="0.00"
                               onChange={(e) =>
@@ -1305,21 +1270,25 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                   </table>
                 </div>
               </Section>
+                </TabsContent>
+              </Tabs>
 
-              <div className="flex items-center justify-center gap-3 border-t border-slate-200 pt-4">
-                <Link
-                  href={`${basePath}/batches/${claim.batch_file_id}`}
-                  className="rounded-md bg-slate-200 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-300"
-                >
-                  Cancel
-                </Link>
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-                >
-                  {busy ? 'Saving…' : canValidate ? 'Validate' : 'Save'}
-                </button>
+              <div className="mt-6 flex items-center justify-end gap-3 border-t border-border pt-4">
+                <Button variant="outline" asChild>
+                  <Link href={`${basePath}/batches/${claim.batch_file_id}`}>Cancel</Link>
+                </Button>
+                <Button type="submit" disabled={busy}>
+                  {busy ? (
+                    <>
+                      <Loader2Icon data-icon="inline-start" className="animate-spin" />
+                      Saving…
+                    </>
+                  ) : canValidate ? (
+                    'Validate'
+                  ) : (
+                    'Save'
+                  )}
+                </Button>
               </div>
             </div>
           </form>

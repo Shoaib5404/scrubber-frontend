@@ -12,7 +12,7 @@ export function SubscriptionBanner() {
   return (
     <div
       role="status"
-      className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+      className="mb-6 rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning"
     >
       {SUBSCRIPTION_INACTIVE_MESSAGE}
     </div>

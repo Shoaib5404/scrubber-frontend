@@ -1,6 +1,11 @@
 import { apiRequest } from '@/lib/api';
 import { getApiBaseUrl } from '@/lib/api/config';
-import { ApiClientError, networkError } from '@/lib/api/errors';
+import {
+  ApiClientError,
+  networkError,
+  normalizeApiErrorPayload,
+  type ApiErrorPayload,
+} from '@/lib/api/errors';
 import { tokenManager } from '@/lib/auth/token-manager';
 import type {
   ApiSuccess,
@@ -120,14 +125,18 @@ export async function exportDomainReference(domain: string): Promise<void> {
   }
 
   if (!response.ok) {
-    let title = response.statusText;
+    let payload: ApiErrorPayload = {};
     try {
-      const payload = (await response.json()) as { message?: string; title?: string };
-      title = payload.message ?? payload.title ?? title;
+      payload = (await response.json()) as ApiErrorPayload;
     } catch {
       // ignore
     }
-    throw new ApiClientError(title, response.status, title);
+    throw ApiClientError.fromNormalized(
+      normalizeApiErrorPayload(payload, {
+        status: response.status,
+        statusText: response.statusText,
+      }),
+    );
   }
 
   const blob = await response.blob();

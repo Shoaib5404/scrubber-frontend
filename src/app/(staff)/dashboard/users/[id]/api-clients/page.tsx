@@ -91,19 +91,19 @@ export default function UserApiClientsPage() {
         {client ? (
           <div className="mt-4 space-y-2 text-sm">
             <p>
-              <span className="text-slate-500">Name:</span> {client.name}
+              <span className="text-muted-foreground">Name:</span> {client.name}
             </p>
             <p>
-              <span className="text-slate-500">Client ID:</span>{' '}
+              <span className="text-muted-foreground">Client ID:</span>{' '}
               <code>{client.client_id}</code>
             </p>
             <p>
-              <span className="text-slate-500">Active:</span> {client.is_active ? 'yes' : 'no'}
+              <span className="text-muted-foreground">Active:</span> {client.is_active ? 'yes' : 'no'}
             </p>
             <div className="flex gap-2 pt-2">
               <button
                 type="button"
-                className="rounded-md border border-slate-300 px-3 py-1.5"
+                className="rounded-md border border-border px-3 py-1.5"
                 onClick={() => void onRotate()}
               >
                 Rotate secret
@@ -122,14 +122,14 @@ export default function UserApiClientsPage() {
             <label className="text-sm">
               Client name
               <input
-                className="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5"
+                className="mt-1 w-full rounded-md border border-border px-2 py-1.5"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </label>
             <button
               type="button"
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white"
+              className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground"
               onClick={() => void onCreate()}
             >
               Create API credentials

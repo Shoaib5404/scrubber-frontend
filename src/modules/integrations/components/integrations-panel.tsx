@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Loader2Icon } from 'lucide-react';
 import { ApiClientError } from '@/lib/api/errors';
 import {
   createIntegrationCredentials,
@@ -8,6 +9,12 @@ import {
   rotateIntegrationSecret,
   type IntegrationApiClient,
 } from '../api';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ConfirmDialog } from '@/components/layout/confirm-dialog';
 
 function formatLastUsed(iso: string | null): string {
   if (!iso) {
@@ -29,6 +36,7 @@ export function IntegrationsPanel() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [confirmRotate, setConfirmRotate] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,13 +82,6 @@ export function IntegrationsPanel() {
   }
 
   async function onRotate() {
-    if (
-      !window.confirm(
-        'Rotate your client secret? Existing API tokens will stop working.',
-      )
-    ) {
-      return;
-    }
     setBusy(true);
     setError(null);
     setMessage(null);
@@ -89,6 +90,7 @@ export function IntegrationsPanel() {
       setClient(result.api_client);
       setSecret(result.plain_client_secret);
       setMessage(result.message);
+      setConfirmRotate(false);
     } catch (err) {
       setError(
         err instanceof ApiClientError
@@ -101,145 +103,155 @@ export function IntegrationsPanel() {
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-600">Loading integrations…</p>;
+    return (
+      <div className="mx-auto flex max-w-3xl flex-col gap-2">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <p className="text-sm text-slate-600">
+    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      <p className="text-sm text-muted-foreground">
         Create your API Client ID and rotate your client secret for machine integrations.
       </p>
 
       {message ? (
-        <div
-          role="status"
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
-        >
-          {message}
-        </div>
+        <Alert>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
       ) : null}
 
       {error ? (
-        <p role="alert" className="text-sm text-red-700">
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : null}
 
       {secret && client ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
-          <h3 className="text-sm font-semibold text-amber-900">
-            Copy your client secret now
-          </h3>
-          <p className="mt-1 text-sm text-amber-800">
-            This secret is shown only once. Store it securely.
-          </p>
-          <div className="mt-4 space-y-3 font-mono text-sm">
-            <div>
-              <div className="mb-1 text-xs uppercase tracking-wide text-amber-700">
-                Client ID
+        <Alert className="border-warning/30 bg-warning/10 text-warning">
+          <AlertTitle>Copy your client secret now</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 text-warning">
+            <span>This secret is shown only once. Store it securely.</span>
+            <div className="flex flex-col gap-3 font-mono text-sm text-foreground">
+              <div>
+                <div className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
+                  Client ID
+                </div>
+                <div className="break-all rounded-md border border-border bg-card px-3 py-2">
+                  {client.client_id}
+                </div>
               </div>
-              <div className="break-all rounded-md border border-amber-200 bg-white px-3 py-2">
-                {client.client_id}
-              </div>
-            </div>
-            <div>
-              <div className="mb-1 text-xs uppercase tracking-wide text-amber-700">
-                Client Secret
-              </div>
-              <div className="break-all rounded-md border border-amber-200 bg-white px-3 py-2">
-                {secret}
+              <div>
+                <div className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
+                  Client Secret
+                </div>
+                <div className="break-all rounded-md border border-border bg-card px-3 py-2">
+                  {secret}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       {!client ? (
-        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900">API credentials</h3>
-          {!apiAccess ? (
-            <p className="mt-2 text-sm text-slate-600">
-              API access is not included in your subscription. Please contact support.
-            </p>
-          ) : (
-            <>
-              <p className="mt-2 text-sm text-slate-600">
-                No API credentials exist for your organization yet. Create a Client ID and
-                secret to call the Scrubber API.
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">API credentials</CardTitle>
+            <CardDescription>
+              {!apiAccess
+                ? 'API access is not included in your subscription. Please contact support.'
+                : 'No API credentials exist for your organization yet.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {apiAccess && canCreate ? (
+              <Button type="button" disabled={busy} onClick={() => void onCreate()}>
+                {busy ? (
+                  <>
+                    <Loader2Icon data-icon="inline-start" className="animate-spin" />
+                    Creating…
+                  </>
+                ) : (
+                  'Create API credentials'
+                )}
+              </Button>
+            ) : apiAccess ? (
+              <p className="text-sm text-muted-foreground">
+                Ask your tenant administrator to create API credentials.
               </p>
-              {canCreate ? (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void onCreate()}
-                  className="mt-4 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-                >
-                  {busy ? 'Creating…' : 'Create API credentials'}
-                </button>
-              ) : (
-                <p className="mt-3 text-sm text-slate-500">
-                  Ask your tenant administrator to create API credentials.
-                </p>
-              )}
-            </>
-          )}
-        </section>
+            ) : null}
+          </CardContent>
+        </Card>
       ) : (
-        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-4">
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">API credentials</h3>
-              <p className="mt-1 text-xs text-slate-500">
+              <CardTitle className="text-base">API credentials</CardTitle>
+              <CardDescription>
                 Last used: {formatLastUsed(client.last_used_at)}
-              </p>
+              </CardDescription>
             </div>
             {client.is_active ? (
-              <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-                Active
-              </span>
+              <Badge className="rounded-md bg-success/10 text-success">Active</Badge>
             ) : (
-              <span className="inline-flex rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
+              <Badge variant="destructive" className="rounded-md">
                 Revoked
-              </span>
+              </Badge>
             )}
-          </div>
-
-          <div className="space-y-4 p-6">
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
             <div>
-              <div className="mb-1 text-xs uppercase tracking-wide text-slate-500">
+              <div className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
                 Client ID
               </div>
-              <div className="break-all rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm">
+              <div className="break-all rounded-md border border-border bg-muted/50 px-3 py-2 font-mono text-sm">
                 {client.client_id}
               </div>
             </div>
-
             <div>
-              <div className="mb-1 text-xs uppercase tracking-wide text-slate-500">
+              <div className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">
                 Client Secret
               </div>
-              <p className="mb-3 text-sm text-slate-500">
+              <p className="mb-3 text-sm text-muted-foreground">
                 Your Client ID stays the same. Rotating creates a new secret and invalidates
                 existing API tokens.
               </p>
               {client.is_active ? (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void onRotate()}
-                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-                >
-                  {busy ? 'Rotating…' : 'Rotate client secret'}
-                </button>
+                <Button type="button" disabled={busy} onClick={() => setConfirmRotate(true)}>
+                  {busy ? (
+                    <>
+                      <Loader2Icon data-icon="inline-start" className="animate-spin" />
+                      Rotating…
+                    </>
+                  ) : (
+                    'Rotate client secret'
+                  )}
+                </Button>
               ) : (
-                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                  These credentials are revoked. Create new credentials or contact support.
-                </p>
+                <Alert>
+                  <AlertDescription>
+                    These credentials are revoked. Create new credentials or contact support.
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       )}
+
+      <ConfirmDialog
+        open={confirmRotate}
+        onOpenChange={setConfirmRotate}
+        title="Rotate client secret?"
+        description="Existing API tokens will stop working after rotation."
+        confirmLabel="Rotate secret"
+        destructive
+        busy={busy}
+        onConfirm={() => void onRotate()}
+      />
     </div>
   );
 }

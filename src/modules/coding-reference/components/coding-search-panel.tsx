@@ -3,8 +3,16 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useState, useTransition } from 'react';
+import { SearchIcon } from 'lucide-react';
 import { ApiClientError } from '@/lib/api/errors';
 import { cptExactSearch, searchReference, type CodingRefItem } from '../api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/layout/empty-state';
+import { cn } from '@/lib/utils';
 
 type Kind = 'cpt' | 'icd10' | 'modifiers';
 
@@ -70,8 +78,8 @@ export function CodingSearchPanel() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Code type">
         {(
           [
             ['cpt', 'CPT / HCPCS'],
@@ -79,76 +87,81 @@ export function CodingSearchPanel() {
             ['modifiers', 'Modifiers'],
           ] as const
         ).map(([value, label]) => (
-          <button
+          <Button
             key={value}
             type="button"
+            role="tab"
+            aria-selected={kind === value}
+            variant={kind === value ? 'default' : 'outline'}
+            size="sm"
             onClick={() => setKind(value)}
-            className={`rounded-md px-3 py-1.5 text-sm ${
-              kind === value
-                ? 'bg-slate-900 text-white'
-                : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-            }`}
           >
             {label}
-          </button>
+          </Button>
         ))}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="flex-1">
-          <label htmlFor={qId} className="block text-sm font-medium text-slate-800">
-            Search
-          </label>
-          <input
-            id={qId}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={kind === 'cpt' ? 'e.g. 97597 or 9921' : 'Type a code prefix…'}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
-          />
+        <div className="flex flex-1 flex-col gap-1.5">
+          <Label htmlFor={qId}>Search</Label>
+          <div className="relative">
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id={qId}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={kind === 'cpt' ? 'e.g. 97597 or 9921' : 'Type a code prefix…'}
+              className="pl-8"
+            />
+          </div>
         </div>
         {kind === 'cpt' ? (
-          <button
+          <Button
             type="button"
             disabled={pending || !query.trim()}
             onClick={openCptExplorer}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
           >
             {pending ? 'Opening…' : 'Open CPT explorer'}
-          </button>
+          </Button>
         ) : null}
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-600" role="status">
-          Searching…
-        </p>
+        <div className="flex flex-col gap-2" role="status" aria-label="Searching">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-2/3" />
+        </div>
       ) : null}
+
       {error ? (
-        <p className="text-sm text-red-700" role="alert">
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : null}
 
       {!loading && debounced && items.length === 0 && !error ? (
-        <p className="text-sm text-slate-600">No matches.</p>
+        <EmptyState title="No matches" description="Try a different code or description." />
       ) : null}
 
       {items.length > 0 ? (
-        <ul className="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
           {items.map((item) => (
-            <li key={`${kind}-${item.code}`} className="px-4 py-3 text-sm">
+            <li
+              key={`${kind}-${item.code}`}
+              className={cn('px-4 py-3 text-sm transition-colors hover:bg-muted/40')}
+            >
               {kind === 'cpt' ? (
                 <Link
                   href={`/cpt/${encodeURIComponent(item.code)}`}
-                  className="font-medium text-slate-900 underline-offset-2 hover:underline"
+                  className="font-medium font-mono text-foreground underline-offset-2 hover:underline"
                 >
                   {item.code}
                 </Link>
               ) : (
-                <span className="font-medium text-slate-900">{item.code}</span>
+                <span className="font-medium font-mono text-foreground">{item.code}</span>
               )}
-              <p className="mt-0.5 text-slate-600">{item.description ?? '—'}</p>
+              <p className="mt-0.5 text-muted-foreground">{item.description ?? '—'}</p>
             </li>
           ))}
         </ul>

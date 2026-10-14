@@ -6,6 +6,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ApiClientError } from '@/lib/api/errors';
 import { useAuthStore } from '../store/auth-store';
 import { ACCOUNT_DEACTIVATED_MESSAGE } from '../types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2Icon } from 'lucide-react';
 
 export function LoginForm() {
   const router = useRouter();
@@ -43,12 +48,10 @@ export function LoginForm() {
   }
 
   return (
-    <form className="mt-8 space-y-5" onSubmit={onSubmit} noValidate>
-      <div>
-        <label htmlFor={emailId} className="block text-sm font-medium text-slate-800">
-          Email
-        </label>
-        <input
+    <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={emailId}>Email</Label>
+        <Input
           id={emailId}
           name="email"
           type="email"
@@ -56,24 +59,21 @@ export function LoginForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
         />
       </div>
-      <div>
+      <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
-          <label htmlFor={passwordId} className="block text-sm font-medium text-slate-800">
-            Password
-          </label>
+          <Label htmlFor={passwordId}>Password</Label>
           <Link
             href="/forgot-password"
-            className="text-xs font-medium text-slate-600 underline-offset-2 hover:underline"
+            className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           >
             Forgot password?
           </Link>
         </div>
-        <input
+        <Input
           id={passwordId}
           name="password"
           type="password"
@@ -81,47 +81,41 @@ export function LoginForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
         />
       </div>
 
       {resetNotice ? (
-        <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          Your password has been reset. You can sign in with your new password.
-        </p>
+        <Alert>
+          <AlertDescription>
+            Your password has been reset. You can sign in with your new password.
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       {deactivatedNotice && !error ? (
-        <p
-          id={errorId}
-          role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-          data-testid="account-deactivated-notice"
-        >
-          {ACCOUNT_DEACTIVATED_MESSAGE}
-        </p>
+        <Alert variant="destructive" data-testid="account-deactivated-notice">
+          <AlertDescription id={errorId}>{ACCOUNT_DEACTIVATED_MESSAGE}</AlertDescription>
+        </Alert>
       ) : null}
 
       {error ? (
-        <p
-          id={errorId}
-          role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-          data-testid="login-error"
-        >
-          {error}
-        </p>
+        <Alert variant="destructive" data-testid="login-error">
+          <AlertDescription id={errorId}>{error}</AlertDescription>
+        </Alert>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {loading ? 'Signing in…' : 'Sign in'}
-      </button>
+      <Button type="submit" disabled={loading} className="w-full">
+        {loading ? (
+          <>
+            <Loader2Icon data-icon="inline-start" className="animate-spin" />
+            Signing in…
+          </>
+        ) : (
+          'Sign in'
+        )}
+      </Button>
     </form>
   );
 }

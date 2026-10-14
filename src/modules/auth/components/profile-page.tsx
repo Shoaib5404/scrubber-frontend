@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2Icon } from 'lucide-react';
 import { ApiClientError } from '@/lib/api/errors';
 import { AppShell } from '@/modules/batches/components/app-shell';
 import {
@@ -12,6 +13,11 @@ import {
 } from '../api';
 import { useAuthStore } from '../store/auth-store';
 import { homePathForRole, isStaffRole } from '../types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export function ProfilePage() {
   const router = useRouter();
@@ -147,222 +153,209 @@ export function ProfilePage() {
   }
 
   return (
-    <AppShell title="Profile" basePath={basePath}>
-      <div className="space-y-6">
-        <section className="max-w-xl rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-medium text-slate-900">Profile Information</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Update your account&apos;s profile information.
-          </p>
-          <form className="mt-6 space-y-5" onSubmit={onSaveProfile} noValidate>
-            <div>
-              <label htmlFor={nameId} className="block text-sm font-medium text-slate-800">
-                Name
-              </label>
-              <input
-                id={nameId}
-                name="name"
-                type="text"
-                required
-                autoComplete="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
-              />
-            </div>
-            <div>
-              <label htmlFor={emailId} className="block text-sm font-medium text-slate-800">
-                Email
-              </label>
-              <input
-                id={emailId}
-                name="email"
-                type="email"
-                disabled
-                readOnly
-                value={email}
-                className="mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-slate-600"
-              />
-              <p className="mt-1 text-sm text-slate-500">
-                Email cannot be changed. Contact an administrator if you need a different
-                address.
-              </p>
-            </div>
-            {profileError ? (
-              <p role="alert" className="text-sm text-red-700">
-                {profileError}
-              </p>
-            ) : null}
-            {profileMessage ? (
-              <p role="status" className="text-sm text-emerald-700">
-                {profileMessage}
-              </p>
-            ) : null}
-            <button
-              type="submit"
-              disabled={profileLoading}
-              className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {profileLoading ? 'Saving…' : 'Save'}
-            </button>
-          </form>
-        </section>
+    <AppShell title="Profile" description="Manage your account settings." basePath={basePath}>
+      <div className="flex flex-col gap-6">
+        <Card className="max-w-xl">
+          <CardHeader>
+            <CardTitle className="text-base">Profile information</CardTitle>
+            <CardDescription>Update your account&apos;s profile information.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="flex flex-col gap-4" onSubmit={onSaveProfile} noValidate>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={nameId}>Name</Label>
+                <Input
+                  id={nameId}
+                  name="name"
+                  type="text"
+                  required
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={emailId}>Email</Label>
+                <Input
+                  id={emailId}
+                  name="email"
+                  type="email"
+                  disabled
+                  readOnly
+                  value={email}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Email cannot be changed. Contact an administrator if you need a different
+                  address.
+                </p>
+              </div>
+              {profileError ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{profileError}</AlertDescription>
+                </Alert>
+              ) : null}
+              {profileMessage ? (
+                <Alert>
+                  <AlertDescription>{profileMessage}</AlertDescription>
+                </Alert>
+              ) : null}
+              <Button type="submit" disabled={profileLoading} className="w-fit">
+                {profileLoading ? (
+                  <>
+                    <Loader2Icon data-icon="inline-start" className="animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-        <section className="max-w-xl rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-medium text-slate-900">Update Password</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Ensure your account is using a long, random password to stay secure.
-          </p>
-          <form className="mt-6 space-y-5" onSubmit={onSavePassword} noValidate>
-            <div>
-              <label
-                htmlFor={currentPasswordId}
-                className="block text-sm font-medium text-slate-800"
-              >
-                Current Password
-              </label>
-              <input
-                id={currentPasswordId}
-                name="current_password"
-                type="password"
-                required
-                autoComplete="current-password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
-              />
-            </div>
-            <div>
-              <label htmlFor={newPasswordId} className="block text-sm font-medium text-slate-800">
-                New Password
-              </label>
-              <input
-                id={newPasswordId}
-                name="password"
-                type="password"
-                required
-                minLength={8}
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor={confirmPasswordId}
-                className="block text-sm font-medium text-slate-800"
-              >
-                Confirm Password
-              </label>
-              <input
-                id={confirmPasswordId}
-                name="password_confirmation"
-                type="password"
-                required
-                minLength={8}
-                autoComplete="new-password"
-                value={passwordConfirmation}
-                onChange={(e) => setPasswordConfirmation(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
-              />
-            </div>
-            {passwordError ? (
-              <p role="alert" className="text-sm text-red-700">
-                {passwordError}
-              </p>
-            ) : null}
-            {passwordMessage ? (
-              <p role="status" className="text-sm text-emerald-700">
-                {passwordMessage}
-              </p>
-            ) : null}
-            <button
-              type="submit"
-              disabled={passwordLoading}
-              className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {passwordLoading ? 'Saving…' : 'Save'}
-            </button>
-          </form>
-        </section>
-
-        <section className="max-w-xl space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-lg font-medium text-slate-900">Delete Account</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Once your account is deleted, all of its resources and data will be permanently
-              deleted. Before deleting your account, please download any data or information that
-              you wish to retain.
-            </p>
-          </div>
-          {!deleteOpen ? (
-            <button
-              type="button"
-              onClick={() => setDeleteOpen(true)}
-              className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800"
-            >
-              Delete Account
-            </button>
-          ) : (
-            <form className="space-y-4 border-t border-slate-200 pt-4" onSubmit={onDeleteAccount}>
-              <p className="text-sm text-slate-700">
-                Are you sure you want to delete your account? Enter your password to confirm.
-              </p>
-              <div>
-                <label htmlFor={deletePasswordId} className="sr-only">
-                  Password
-                </label>
-                <input
-                  id={deletePasswordId}
+        <Card className="max-w-xl">
+          <CardHeader>
+            <CardTitle className="text-base">Update password</CardTitle>
+            <CardDescription>
+              Ensure your account is using a long, random password to stay secure.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="flex flex-col gap-4" onSubmit={onSavePassword} noValidate>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={currentPasswordId}>Current password</Label>
+                <Input
+                  id={currentPasswordId}
+                  name="current_password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={newPasswordId}>New password</Label>
+                <Input
+                  id={newPasswordId}
                   name="password"
                   type="password"
                   required
-                  placeholder="Password"
-                  autoComplete="current-password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
                 />
               </div>
-              {deleteError ? (
-                <p role="alert" className="text-sm text-red-700">
-                  {deleteError}
-                </p>
-              ) : null}
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeleteOpen(false);
-                    setDeletePassword('');
-                    setDeleteError(null);
-                  }}
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={deleteLoading}
-                  className="rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {deleteLoading ? 'Deleting…' : 'Delete Account'}
-                </button>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={confirmPasswordId}>Confirm password</Label>
+                <Input
+                  id={confirmPasswordId}
+                  name="password_confirmation"
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={passwordConfirmation}
+                  onChange={(e) => setPasswordConfirmation(e.target.value)}
+                />
               </div>
+              {passwordError ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{passwordError}</AlertDescription>
+                </Alert>
+              ) : null}
+              {passwordMessage ? (
+                <Alert>
+                  <AlertDescription>{passwordMessage}</AlertDescription>
+                </Alert>
+              ) : null}
+              <Button type="submit" disabled={passwordLoading} className="w-fit">
+                {passwordLoading ? (
+                  <>
+                    <Loader2Icon data-icon="inline-start" className="animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
             </form>
-          )}
-        </section>
+          </CardContent>
+        </Card>
 
-        <p className="text-sm text-slate-500">
-          <button
-            type="button"
-            className="font-medium text-slate-900 underline-offset-2 hover:underline"
-            onClick={() => router.push(user ? homePathForRole(user.role) : '/login')}
-          >
-            Back to home
-          </button>
-        </p>
+        <Card className="max-w-xl border-destructive/30">
+          <CardHeader>
+            <CardTitle className="text-base">Delete account</CardTitle>
+            <CardDescription>
+              Once your account is deleted, all of its resources and data will be permanently
+              deleted.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!deleteOpen ? (
+              <Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
+                Delete account
+              </Button>
+            ) : (
+              <form className="flex flex-col gap-4 border-t border-border pt-4" onSubmit={onDeleteAccount}>
+                <p className="text-sm text-foreground/90">
+                  Are you sure you want to delete your account? Enter your password to confirm.
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor={deletePasswordId}>Password</Label>
+                  <Input
+                    id={deletePasswordId}
+                    name="password"
+                    type="password"
+                    required
+                    placeholder="Password"
+                    autoComplete="current-password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                  />
+                </div>
+                {deleteError ? (
+                  <Alert variant="destructive">
+                    <AlertDescription>{deleteError}</AlertDescription>
+                  </Alert>
+                ) : null}
+                <div className="flex justify-end gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setDeleteOpen(false);
+                      setDeletePassword('');
+                      setDeleteError(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" variant="destructive" disabled={deleteLoading}>
+                    {deleteLoading ? (
+                      <>
+                        <Loader2Icon data-icon="inline-start" className="animate-spin" />
+                        Deleting…
+                      </>
+                    ) : (
+                      'Delete account'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto w-fit px-0"
+          onClick={() => router.push(user ? homePathForRole(user.role) : '/login')}
+        >
+          Back to home
+        </Button>
       </div>
     </AppShell>
   );

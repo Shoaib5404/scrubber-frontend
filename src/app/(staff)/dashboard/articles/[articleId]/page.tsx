@@ -31,7 +31,7 @@ export default function DashboardArticlePage({
       {!Number.isInteger(articleId) || articleId <= 0 ? (
         <p className="text-sm text-rose-700">Invalid article number.</p>
       ) : (
-        <Suspense fallback={<p className="text-sm text-slate-600">Loading…</p>}>
+        <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
           <ArticleShowInner articleId={articleId} />
         </Suspense>
       )}

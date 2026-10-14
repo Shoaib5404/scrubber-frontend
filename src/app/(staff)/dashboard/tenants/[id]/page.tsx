@@ -56,7 +56,7 @@ export default function TenantDetailPage() {
   if (!canManage) {
     return (
       <AppShell title="Tenant" basePath="/dashboard">
-        <p className="text-sm text-slate-600">You do not have permission to manage tenants.</p>
+        <p className="text-sm text-muted-foreground">You do not have permission to manage tenants.</p>
       </AppShell>
     );
   }
@@ -121,20 +121,20 @@ export default function TenantDetailPage() {
   return (
     <AppShell title={tenant?.name ?? 'Tenant'} basePath="/dashboard">
       <div className="mb-4">
-        <Link href="/dashboard/tenants" className="text-sm text-slate-600 underline">
+        <Link href="/dashboard/tenants" className="text-sm text-muted-foreground underline">
           ← All tenants
         </Link>
       </div>
-      {error ? <p className="mb-3 text-sm text-red-700">{error}</p> : null}
-      {message ? <p className="mb-3 text-sm text-emerald-700">{message}</p> : null}
+      {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
+      {message ? <p className="mb-3 text-sm text-success">{message}</p> : null}
 
       {tenant ? (
-        <div className="mb-6 space-y-4 rounded-md border border-slate-200 bg-white p-4">
-          <div className="text-sm text-slate-600">Slug: {tenant.slug}</div>
+        <div className="mb-6 space-y-4 rounded-md border border-border bg-card p-4">
+          <div className="text-sm text-muted-foreground">Slug: {tenant.slug}</div>
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+              className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm"
               onClick={() =>
                 void updateTenant(tenantId, {
                   status: tenant.status === 'active' ? 'suspended' : 'active',
@@ -147,7 +147,7 @@ export default function TenantDetailPage() {
             </button>
             <button
               type="button"
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+              className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm"
               onClick={() =>
                 void updateTenant(tenantId, {
                   subscription_status:
@@ -162,8 +162,8 @@ export default function TenantDetailPage() {
           </div>
 
           <fieldset>
-            <legend className="text-sm font-medium text-slate-900">Subscription features</legend>
-            <p className="mt-1 text-xs text-slate-500">
+            <legend className="text-sm font-medium text-foreground">Subscription features</legend>
+            <p className="mt-1 text-xs text-muted-foreground">
               Selecting Batches API or Reference API also enables API access.
             </p>
             <div className="mt-2 space-y-2">
@@ -176,7 +176,7 @@ export default function TenantDetailPage() {
                     group: '',
                   }))
               ).map((item) => (
-                <label key={item.value} className="flex items-start gap-2 text-sm text-slate-800">
+                <label key={item.value} className="flex items-start gap-2 text-sm text-foreground">
                   <input
                     type="checkbox"
                     className="mt-1"
@@ -186,7 +186,7 @@ export default function TenantDetailPage() {
                   <span>
                     <span className="font-medium">{item.label}</span>
                     {item.description ? (
-                      <span className="block text-xs text-slate-500">{item.description}</span>
+                      <span className="block text-xs text-muted-foreground">{item.description}</span>
                     ) : null}
                   </span>
                 </label>
@@ -196,7 +196,7 @@ export default function TenantDetailPage() {
               type="button"
               disabled={savingFeatures}
               onClick={() => void saveFeatures()}
-              className="mt-3 rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+              className="mt-3 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
             >
               {savingFeatures ? 'Saving…' : 'Save features'}
             </button>
@@ -204,10 +204,10 @@ export default function TenantDetailPage() {
         </div>
       ) : null}
 
-      <h2 className="mb-2 text-lg font-semibold text-slate-900">Members</h2>
-      <div className="mb-6 overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <h2 className="mb-2 text-lg font-semibold text-foreground">Members</h2>
+      <div className="mb-6 overflow-x-auto rounded-md border border-border bg-card">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
+          <thead className="border-b border-border bg-muted/50 text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Email</th>
@@ -218,7 +218,7 @@ export default function TenantDetailPage() {
           </thead>
           <tbody>
             {members.map((m) => (
-              <tr key={m.id} className="border-b border-slate-100">
+              <tr key={m.id} className="border-b border-border">
                 <td className="px-4 py-3">{m.name}</td>
                 <td className="px-4 py-3">{m.email}</td>
                 <td className="px-4 py-3">{m.role}</td>
@@ -229,7 +229,7 @@ export default function TenantDetailPage() {
                   {!m.is_active ? (
                     <button
                       type="button"
-                      className="text-sm font-medium text-slate-900 underline"
+                      className="text-sm font-medium text-foreground underline"
                       onClick={() =>
                         void resendTenantInvite(tenantId, m.email)
                           .then((data) => {
@@ -258,33 +258,33 @@ export default function TenantDetailPage() {
         </table>
       </div>
 
-      <form onSubmit={onInvite} className="max-w-lg space-y-3 rounded-md border border-slate-200 bg-white p-4">
-        <h3 className="font-medium text-slate-900">Invite member</h3>
+      <form onSubmit={onInvite} className="max-w-lg space-y-3 rounded-md border border-border bg-card p-4">
+        <h3 className="font-medium text-foreground">Invite member</h3>
         <input
           required
           type="email"
           placeholder="Email"
           value={inviteEmail}
           onChange={(e) => setInviteEmail(e.target.value)}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="w-full rounded-md border border-border px-3 py-2 text-sm"
         />
         <input
           placeholder="Name"
           value={inviteName}
           onChange={(e) => setInviteName(e.target.value)}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="w-full rounded-md border border-border px-3 py-2 text-sm"
         />
         <select
           value={inviteRole}
           onChange={(e) => setInviteRole(e.target.value)}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="w-full rounded-md border border-border px-3 py-2 text-sm"
         >
           <option value="customer">Customer</option>
           <option value="tenant_admin">Tenant admin</option>
         </select>
         <button
           type="submit"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+          className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground"
         >
           Send invite
         </button>

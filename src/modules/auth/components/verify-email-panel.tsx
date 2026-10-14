@@ -103,13 +103,13 @@ export function VerifyEmailPanel() {
   return (
     <div className="mt-8 space-y-5">
       {verifying ? (
-        <p role="status" className="text-sm text-slate-600">
+        <p role="status" className="text-sm text-muted-foreground">
           Verifying your email…
         </p>
       ) : null}
 
       {error ? (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}
@@ -117,14 +117,14 @@ export function VerifyEmailPanel() {
       {message ? (
         <p
           role="status"
-          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+          className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success"
         >
           {message}
         </p>
       ) : null}
 
       {verificationUrl ? (
-        <p className="break-all rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+        <p className="break-all rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-foreground/90">
           Dev verification link:{' '}
           <Link href={verificationUrl} className="font-medium underline">
             {verificationUrl}
@@ -135,12 +135,12 @@ export function VerifyEmailPanel() {
       {!link && !verifying ? (
         <>
           {status === 'authenticated' && alreadyVerified ? (
-            <p className="text-sm text-slate-600">Your email address is already verified.</p>
+            <p className="text-sm text-muted-foreground">Your email address is already verified.</p>
           ) : null}
 
           {status === 'authenticated' && !alreadyVerified ? (
             <>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 Thanks for signing up. Please verify your email address by clicking the link we
                 sent you. If you did not receive the email, we can send another.
               </p>
@@ -148,7 +148,7 @@ export function VerifyEmailPanel() {
                 type="button"
                 disabled={resending}
                 onClick={onResend}
-                className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {resending ? 'Sending…' : 'Resend verification email'}
               </button>
@@ -156,11 +156,11 @@ export function VerifyEmailPanel() {
           ) : null}
 
           {status === 'anonymous' ? (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               Open the verification link from your email, or{' '}
               <Link
                 href="/login"
-                className="font-medium text-slate-900 underline-offset-2 hover:underline"
+                className="font-medium text-foreground underline-offset-2 hover:underline"
               >
                 sign in
               </Link>{' '}
@@ -170,10 +170,10 @@ export function VerifyEmailPanel() {
         </>
       ) : null}
 
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center text-sm text-muted-foreground">
         <Link
           href={homeHref}
-          className="font-medium text-slate-900 underline-offset-2 hover:underline"
+          className="font-medium text-foreground underline-offset-2 hover:underline"
         >
           {user ? 'Continue' : 'Back to sign in'}
         </Link>

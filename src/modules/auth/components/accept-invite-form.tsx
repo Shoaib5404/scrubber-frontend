@@ -3,8 +3,13 @@
 import Link from 'next/link';
 import { FormEvent, useId, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Loader2Icon } from 'lucide-react';
 import { ApiClientError } from '@/lib/api/errors';
 import { acceptInviteRequest } from '../api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export function AcceptInviteForm() {
   const router = useRouter();
@@ -57,12 +62,10 @@ export function AcceptInviteForm() {
   }
 
   return (
-    <form className="mt-8 space-y-5" onSubmit={onSubmit} noValidate>
-      <div>
-        <label htmlFor={emailId} className="block text-sm font-medium text-slate-800">
-          Email
-        </label>
-        <input
+    <form className="mt-6 flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={emailId}>Email</Label>
+        <Input
           id={emailId}
           name="email"
           type="email"
@@ -70,14 +73,11 @@ export function AcceptInviteForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
       </div>
-      <div>
-        <label htmlFor={passwordId} className="block text-sm font-medium text-slate-800">
-          Password
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={passwordId}>Password</Label>
+        <Input
           id={passwordId}
           name="password"
           type="password"
@@ -86,14 +86,11 @@ export function AcceptInviteForm() {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
         />
       </div>
-      <div>
-        <label htmlFor={confirmId} className="block text-sm font-medium text-slate-800">
-          Confirm password
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={confirmId}>Confirm password</Label>
+        <Input
           id={confirmId}
           name="password_confirmation"
           type="password"
@@ -102,25 +99,31 @@ export function AcceptInviteForm() {
           minLength={8}
           value={passwordConfirmation}
           onChange={(e) => setPasswordConfirmation(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
         />
       </div>
+
       {error ? (
-        <p id={errorId} className="text-sm text-red-700" role="alert">
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription id={errorId}>{error}</AlertDescription>
+        </Alert>
       ) : null}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-      >
-        {loading ? 'Accepting…' : 'Accept invite'}
-      </button>
-      <p className="text-center text-sm text-slate-600">
-        Already have an account?{' '}
-        <Link href="/login" className="font-medium text-slate-900 underline">
-          Sign in
+
+      <Button type="submit" disabled={loading} className="w-full">
+        {loading ? (
+          <>
+            <Loader2Icon data-icon="inline-start" className="animate-spin" />
+            Accepting…
+          </>
+        ) : (
+          'Accept invite'
+        )}
+      </Button>
+
+      <p className="text-center text-sm text-muted-foreground">
+        <Link href="/login" className="font-medium text-foreground underline-offset-2 hover:underline">
+          Back to sign in
         </Link>
       </p>
     </form>

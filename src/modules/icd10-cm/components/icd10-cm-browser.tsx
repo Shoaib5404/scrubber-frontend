@@ -118,13 +118,13 @@ function Breadcrumbs({ level }: { level: Level }) {
   }
 
   return (
-    <nav className="mb-4 text-sm text-slate-600" aria-label="Breadcrumb">
+    <nav className="mb-4 text-sm text-muted-foreground" aria-label="Breadcrumb">
       <ol className="flex flex-wrap items-center gap-1">
         {crumbs.map((c, i) => (
           <li key={c.href} className="flex items-center gap-1">
             {i > 0 ? <span aria-hidden="true">/</span> : null}
             {i === crumbs.length - 1 ? (
-              <span className="font-medium text-slate-900">{c.label}</span>
+              <span className="font-medium text-foreground">{c.label}</span>
             ) : (
               <Link href={c.href} className="underline-offset-2 hover:underline">
                 {c.label}
@@ -147,19 +147,19 @@ function LevelBody({
   if (level.kind === 'chapters' && 'items' in data) {
     return (
       <>
-        <h2 className="text-xl font-semibold text-slate-900">ICD-10-CM Chapters</h2>
-        <p className="mt-1 text-sm text-slate-600">Browse chapters, sections, and codes.</p>
-        <ul className="mt-6 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+        <h2 className="text-xl font-semibold text-foreground">ICD-10-CM Chapters</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Browse chapters, sections, and codes.</p>
+        <ul className="mt-6 divide-y divide-border rounded-lg border border-border bg-card">
           {data.items.map((item) => (
             <li key={item.code}>
               <Link
                 href={`/icd10-cm/${encodeURIComponent(item.code)}`}
-                className="flex gap-3 px-4 py-3 text-sm hover:bg-slate-50"
+                className="flex gap-3 px-4 py-3 text-sm hover:bg-muted/50"
               >
-                <span className="w-24 shrink-0 font-mono font-medium text-slate-900">
+                <span className="w-24 shrink-0 font-mono font-medium text-foreground">
                   {item.code}
                 </span>
-                <span className="text-slate-700">{item.description ?? '—'}</span>
+                <span className="text-foreground/90">{item.description ?? '—'}</span>
               </Link>
             </li>
           ))}
@@ -172,23 +172,23 @@ function LevelBody({
     const chapter = data as IcdCmChapter;
     return (
       <>
-        <h2 className="text-xl font-semibold text-slate-900">
+        <h2 className="text-xl font-semibold text-foreground">
           Chapter {chapter.chapter_code}
         </h2>
         {chapter.chapter_description ? (
-          <p className="mt-2 text-sm text-slate-700">{chapter.chapter_description}</p>
+          <p className="mt-2 text-sm text-foreground/90">{chapter.chapter_description}</p>
         ) : null}
         <Icd10CmNotes notes={chapter} />
-        <h3 className="mt-6 text-base font-semibold text-slate-900">Sections</h3>
-        <ul className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+        <h3 className="mt-6 text-base font-semibold text-foreground">Sections</h3>
+        <ul className="mt-3 divide-y divide-border rounded-lg border border-border bg-card">
           {chapter.sections.map((item) => (
             <li key={item.code}>
               <Link
                 href={`/icd10-cm/${encodeURIComponent(chapter.chapter_code)}/${encodeURIComponent(item.code)}`}
-                className="flex gap-3 px-4 py-3 text-sm hover:bg-slate-50"
+                className="flex gap-3 px-4 py-3 text-sm hover:bg-muted/50"
               >
                 <span className="w-28 shrink-0 font-mono font-medium">{item.code}</span>
-                <span className="text-slate-700">{item.description ?? '—'}</span>
+                <span className="text-foreground/90">{item.description ?? '—'}</span>
               </Link>
             </li>
           ))}
@@ -203,14 +203,14 @@ function LevelBody({
       <>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">{section.section_code}</h2>
-            <p className="mt-1 text-sm text-slate-700">{section.section_title}</p>
+            <h2 className="text-xl font-semibold text-foreground">{section.section_code}</h2>
+            <p className="mt-1 text-sm text-foreground/90">{section.section_title}</p>
           </div>
           <div className="flex gap-2 text-sm">
             {section.prev_section_code ? (
               <Link
                 href={`/icd10-cm/${encodeURIComponent(section.chapter_code)}/${encodeURIComponent(section.prev_section_code)}`}
-                className="rounded-md border border-slate-300 px-3 py-1.5 hover:bg-slate-50"
+                className="rounded-md border border-border px-3 py-1.5 hover:bg-muted/50"
               >
                 ← Prev
               </Link>
@@ -218,7 +218,7 @@ function LevelBody({
             {section.next_section_code ? (
               <Link
                 href={`/icd10-cm/${encodeURIComponent(section.chapter_code)}/${encodeURIComponent(section.next_section_code)}`}
-                className="rounded-md border border-slate-300 px-3 py-1.5 hover:bg-slate-50"
+                className="rounded-md border border-border px-3 py-1.5 hover:bg-muted/50"
               >
                 Next →
               </Link>
@@ -226,18 +226,18 @@ function LevelBody({
           </div>
         </div>
         <Icd10CmNotes notes={section} />
-        <h3 className="mt-6 text-base font-semibold text-slate-900">Codes</h3>
-        <ul className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+        <h3 className="mt-6 text-base font-semibold text-foreground">Codes</h3>
+        <ul className="mt-3 divide-y divide-border rounded-lg border border-border bg-card">
           {section.child_codes.map((item) => (
             <li key={item.code}>
               <Link
                 href={`/icd10-cm/${encodeURIComponent(section.chapter_code)}/${encodeURIComponent(section.section_code)}/${encodeURIComponent(item.code)}`}
-                className="flex items-start gap-3 px-4 py-3 text-sm hover:bg-slate-50"
+                className="flex items-start gap-3 px-4 py-3 text-sm hover:bg-muted/50"
               >
                 <span className="w-28 shrink-0 font-mono font-medium">{item.code}</span>
-                <span className="flex-1 text-slate-700">{item.description ?? '—'}</span>
+                <span className="flex-1 text-foreground/90">{item.description ?? '—'}</span>
                 {item.is_billable ? (
-                  <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">
+                  <span className="rounded bg-success/10 px-2 py-0.5 text-xs text-success">
                     Billable
                   </span>
                 ) : null}
@@ -254,21 +254,21 @@ function LevelBody({
     <>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">
+          <h2 className="text-xl font-semibold text-foreground">
             {detail.code}
             {detail.is_billable ? (
-              <span className="ml-2 rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+              <span className="ml-2 rounded bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
                 Billable
               </span>
             ) : null}
           </h2>
           {detail.main_description ? (
-            <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
+            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground/90">
               {detail.main_description}
             </p>
           ) : null}
           {detail.effective_start_date ? (
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               Effective {detail.effective_start_date}
             </p>
           ) : null}
@@ -276,7 +276,7 @@ function LevelBody({
         {detail.parent_nav ? (
           <Link
             href={detail.parent_nav.path}
-            className="text-sm text-slate-600 underline-offset-2 hover:underline"
+            className="text-sm text-muted-foreground underline-offset-2 hover:underline"
           >
             ↑ Parent {detail.parent_nav.code}
           </Link>
@@ -284,9 +284,9 @@ function LevelBody({
       </div>
 
       {(detail.clinical_bullets ?? []).length > 0 ? (
-        <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4">
-          <h3 className="text-sm font-semibold text-slate-900">Clinical / inclusion</h3>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+        <div className="mt-4 rounded-lg border border-border bg-card p-4">
+          <h3 className="text-sm font-semibold text-foreground">Clinical / inclusion</h3>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground/90">
             {detail.clinical_bullets!.map((line, idx) => (
               <li key={idx}>{line}</li>
             ))}
@@ -299,11 +299,11 @@ function LevelBody({
       {detail.description_groups?.length ? (
         <div className="mt-4 space-y-3">
           {detail.description_groups.map((g) => (
-            <div key={g.type} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div key={g.type} className="rounded-lg border border-border bg-muted/50 p-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {g.type_label}
               </h4>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground/90">
                 {g.lines.map((line, idx) => (
                   <li key={idx}>{line}</li>
                 ))}
@@ -315,18 +315,18 @@ function LevelBody({
 
       {detail.sub_codes.length > 0 ? (
         <>
-          <h3 className="mt-6 text-base font-semibold text-slate-900">Child codes</h3>
-          <ul className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+          <h3 className="mt-6 text-base font-semibold text-foreground">Child codes</h3>
+          <ul className="mt-3 divide-y divide-border rounded-lg border border-border bg-card">
             {detail.sub_codes.map((item) => (
               <li key={item.code}>
                 <Link
                   href={item.path}
-                  className="flex items-start gap-3 px-4 py-3 text-sm hover:bg-slate-50"
+                  className="flex items-start gap-3 px-4 py-3 text-sm hover:bg-muted/50"
                 >
                   <span className="w-28 shrink-0 font-mono font-medium">{item.code}</span>
-                  <span className="flex-1 text-slate-700">{item.description ?? '—'}</span>
+                  <span className="flex-1 text-foreground/90">{item.description ?? '—'}</span>
                   {item.is_billable ? (
-                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">
+                    <span className="rounded bg-success/10 px-2 py-0.5 text-xs text-success">
                       Billable
                     </span>
                   ) : null}

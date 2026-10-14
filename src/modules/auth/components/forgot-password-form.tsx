@@ -1,79 +1,101 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useId, useState } from 'react';
+import { useId, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { ApiClientError } from '@/lib/api/errors';
 import { forgotPasswordRequest } from '../api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2Icon } from 'lucide-react';
+
+const schema = z.object({
+  email: z.email('Enter a valid email address.'),
+});
+
+type FormValues = z.infer<typeof schema>;
 
 export function ForgotPasswordForm() {
   const emailId = useId();
   const errorId = useId();
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: '' },
+  });
+
+  async function onSubmit(values: FormValues) {
+    setServerError(null);
     setMessage(null);
-    setLoading(true);
     try {
-      const result = await forgotPasswordRequest(email.trim());
+      const result = await forgotPasswordRequest(values.email.trim());
       setMessage(result.message);
     } catch (err) {
-      setError(
+      setServerError(
         err instanceof ApiClientError
           ? err.title ?? err.message
           : 'Unable to send reset link. Please try again.',
       );
-    } finally {
-      setLoading(false);
     }
   }
 
   return (
-    <form className="mt-8 space-y-5" onSubmit={onSubmit} noValidate>
-      <div>
-        <label htmlFor={emailId} className="block text-sm font-medium text-slate-800">
-          Email
-        </label>
-        <input
+    <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={emailId}>Email</Label>
+        <Input
           id={emailId}
-          name="email"
           type="email"
           autoComplete="username"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
+          aria-invalid={errors.email || serverError ? true : undefined}
+          aria-describedby={errors.email || serverError ? errorId : undefined}
+          {...register('email')}
         />
+        {errors.email ? (
+          <p id={errorId} className="text-sm text-destructive" role="alert">
+            {errors.email.message}
+          </p>
+        ) : null}
       </div>
 
-      {error ? (
-        <p id={errorId} role="alert" className="text-sm text-red-700">
-          {error}
-        </p>
+      {serverError ? (
+        <Alert variant="destructive">
+          <AlertDescription id={errorId}>{serverError}</AlertDescription>
+        </Alert>
       ) : null}
 
       {message ? (
-        <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          {message}
-        </p>
+        <Alert>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {loading ? 'Sending…' : 'Email password reset link'}
-      </button>
+      <Button type="submit" disabled={isSubmitting} className="w-full">
+        {isSubmitting ? (
+          <>
+            <Loader2Icon data-icon="inline-start" className="animate-spin" />
+            Sending…
+          </>
+        ) : (
+          'Email password reset link'
+        )}
+      </Button>
 
-      <p className="text-center text-sm text-slate-600">
-        <Link href="/login" className="font-medium text-slate-900 underline-offset-2 hover:underline">
+      <p className="text-center text-sm text-muted-foreground">
+        <Link
+          href="/login"
+          className="font-medium text-foreground underline-offset-2 hover:underline"
+        >
           Back to sign in
         </Link>
       </p>

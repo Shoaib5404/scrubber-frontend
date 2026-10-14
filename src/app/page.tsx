@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { BrandLogo } from '@/components/brand';
+import { useDocumentTitle } from '@/hooks/use-document-title';
 import { fetchApiHealth } from '@/lib/api';
 
 type HealthState =
@@ -10,6 +12,7 @@ type HealthState =
   | { kind: 'unavailable'; message: string };
 
 export default function Home() {
+  useDocumentTitle('Home');
   const [health, setHealth] = useState<HealthState>({ kind: 'loading' });
 
   useEffect(() => {
@@ -36,12 +39,13 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-6 px-6">
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+      <BrandLogo variant="logo" priority className="h-14 w-auto" />
+      <h1 className="text-3xl font-semibold tracking-tight text-foreground">
         Neo Scrubber
       </h1>
-      <p className="text-slate-600">
+      <p className="text-muted-foreground">
         Next.js frontend scaffold. API base URL comes from{' '}
-        <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm">
+        <code className="rounded bg-muted px-1.5 py-0.5 text-sm">
           NEXT_PUBLIC_API_URL
         </code>
         .
@@ -50,30 +54,30 @@ export default function Home() {
         aria-live="polite"
         className={
           health.kind === 'ok'
-            ? 'text-emerald-700'
+            ? 'text-success'
             : health.kind === 'unavailable'
-              ? 'text-amber-700'
-              : 'text-slate-500'
+              ? 'text-warning'
+              : 'text-muted-foreground'
         }
       >
         {health.kind === 'loading' && 'Checking API…'}
         {health.kind === 'ok' && `API ok (${health.status})`}
         {health.kind === 'unavailable' && `API unavailable`}
       </p>
-      <ul className="list-disc space-y-2 pl-5 text-slate-700">
+      <ul className="flex list-none flex-col gap-2 pl-0 text-foreground/90">
         <li>
-          <Link className="underline" href="/login">
+          <Link className="font-medium text-primary underline-offset-2 hover:underline" href="/login">
             Sign in
           </Link>
         </li>
         <li>
-          <Link className="underline" href="/dashboard">
-            Staff dashboard placeholder
+          <Link className="text-muted-foreground underline-offset-2 hover:underline" href="/dashboard">
+            Staff dashboard
           </Link>
         </li>
         <li>
-          <Link className="underline" href="/portal">
-            Customer portal placeholder
+          <Link className="text-muted-foreground underline-offset-2 hover:underline" href="/portal">
+            Customer portal
           </Link>
         </li>
       </ul>

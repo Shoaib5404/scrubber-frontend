@@ -1,8 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Controller, useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2Icon } from 'lucide-react';
 import { ApiClientError } from '@/lib/api/errors';
 import {
   createUser,
@@ -12,6 +16,11 @@ import {
   type UpsertUserInput,
   type UsersFormMeta,
 } from '../api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type UserFormProps = {
   mode: 'create' | 'edit';
@@ -23,35 +32,85 @@ function toDateInput(value?: string | null): string {
   return value.slice(0, 10);
 }
 
+const baseSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required.').max(255),
+  email: z.email('Enter a valid email address.'),
+  password: z.string(),
+  passwordConfirmation: z.string(),
+  role: z.string().min(1, 'Role is required.'),
+  isActive: z.boolean(),
+  plan: z.string(),
+  subscriptionStatus: z.string(),
+  startsAt: z.string(),
+  endsAt: z.string(),
+});
+
+type FormValues = z.infer<typeof baseSchema>;
+
 export function UserForm({ mode, user }: UserFormProps) {
   const router = useRouter();
-  const nameId = useId();
-  const emailId = useId();
-  const passwordId = useId();
-  const confirmId = useId();
-  const roleId = useId();
-  const activeId = useId();
-  const planId = useId();
-  const statusId = useId();
-  const startsId = useId();
-  const endsId = useId();
-
   const [meta, setMeta] = useState<UsersFormMeta | null>(null);
-  const [name, setName] = useState(user?.name ?? '');
-  const [email, setEmail] = useState(user?.email ?? '');
-  const [password, setPassword] = useState('');
-  const [passwordConfirmation, setPasswordConfirmation] = useState('');
-  const [role, setRole] = useState(user?.role ?? 'customer');
-  const [isActive, setIsActive] = useState(user?.is_active ?? true);
-  const [plan, setPlan] = useState(user?.plan ?? '');
-  const [subscriptionStatus, setSubscriptionStatus] = useState(
-    user?.subscription_status ?? 'active',
-  );
-  const [startsAt, setStartsAt] = useState(toDateInput(user?.subscription_starts_at));
-  const [endsAt, setEndsAt] = useState(toDateInput(user?.subscription_ends_at));
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [metaError, setMetaError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const schema = useMemo(
+    () =>
+      baseSchema.superRefine((values, ctx) => {
+        if (mode === 'create' && values.password.length < 8) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['password'],
+            message: 'Password must be at least 8 characters.',
+          });
+        }
+        if (values.password && values.password !== values.passwordConfirmation) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['passwordConfirmation'],
+            message: 'Password confirmation does not match.',
+          });
+        }
+        if (
+          values.role === 'customer' &&
+          values.startsAt &&
+          values.endsAt &&
+          values.endsAt < values.startsAt
+        ) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['endsAt'],
+            message: 'Subscription end date must be on or after the start date.',
+          });
+        }
+      }),
+    [mode],
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: user?.name ?? '',
+      email: user?.email ?? '',
+      password: '',
+      passwordConfirmation: '',
+      role: user?.role ?? 'customer',
+      isActive: user?.is_active ?? true,
+      plan: user?.plan ?? '',
+      subscriptionStatus: user?.subscription_status ?? 'active',
+      startsAt: toDateInput(user?.subscription_starts_at),
+      endsAt: toDateInput(user?.subscription_ends_at),
+    },
+  });
+
+  const role = watch('role');
+  const showSubscription = role === 'customer';
 
   useEffect(() => {
     let cancelled = false;
@@ -63,7 +122,7 @@ export function UserForm({ mode, user }: UserFormProps) {
           const preferred =
             data.assignable_roles.find((r) => r.value === 'customer') ??
             data.assignable_roles[0];
-          setRole(preferred.value);
+          setValue('role', preferred.value);
         }
       })
       .catch((err: unknown) => {
@@ -78,42 +137,26 @@ export function UserForm({ mode, user }: UserFormProps) {
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+  }, [mode, setValue]);
 
-  const showSubscription = role === 'customer';
   const roleOptions = useMemo(() => meta?.assignable_roles ?? [], [meta]);
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    setError(null);
-
-    if (mode === 'create' && password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
-    if (password && password !== passwordConfirmation) {
-      setError('Password confirmation does not match.');
-      return;
-    }
-    if (showSubscription && startsAt && endsAt && endsAt < startsAt) {
-      setError('Subscription end date must be on or after the start date.');
-      return;
-    }
-
+  async function onSubmit(values: FormValues) {
+    setServerError(null);
     const payload: UpsertUserInput = {
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      role,
-      is_active: isActive,
+      name: values.name.trim(),
+      email: values.email.trim().toLowerCase(),
+      role: values.role,
+      is_active: values.isActive,
     };
-    if (password) {
-      payload.password = password;
+    if (values.password) {
+      payload.password = values.password;
     }
-    if (showSubscription) {
-      payload.plan = plan || null;
-      payload.subscription_status = subscriptionStatus;
-      payload.subscription_starts_at = startsAt || null;
-      payload.subscription_ends_at = endsAt || null;
+    if (values.role === 'customer') {
+      payload.plan = values.plan || null;
+      payload.subscription_status = values.subscriptionStatus;
+      payload.subscription_starts_at = values.startsAt || null;
+      payload.subscription_ends_at = values.endsAt || null;
     } else {
       payload.plan = null;
       payload.subscription_status = 'inactive';
@@ -121,7 +164,6 @@ export function UserForm({ mode, user }: UserFormProps) {
       payload.subscription_ends_at = null;
     }
 
-    setLoading(true);
     try {
       if (mode === 'create') {
         await createUser(payload);
@@ -131,115 +173,113 @@ export function UserForm({ mode, user }: UserFormProps) {
       router.push('/dashboard/users');
       router.refresh();
     } catch (err) {
-      setError(
-        err instanceof ApiClientError
-          ? err.title ?? err.message
-          : 'Unable to save user.',
+      setServerError(
+        err instanceof ApiClientError ? err.title ?? err.message : 'Unable to save user.',
       );
-    } finally {
-      setLoading(false);
     }
   }
 
   if (metaError) {
-    return <p className="text-sm text-red-700">{metaError}</p>;
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>{metaError}</AlertDescription>
+      </Alert>
+    );
   }
 
   if (!meta) {
-    return <p className="text-sm text-slate-600">Loading form…</p>;
+    return (
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-2/3" />
+      </div>
+    );
   }
 
   if (roleOptions.length === 0) {
     return (
-      <p className="text-sm text-amber-800">
-        You do not have any assignable roles. Ask a Super Admin to grant user management access.
-      </p>
+      <Alert>
+        <AlertDescription>
+          You do not have any assignable roles. Ask a Super Admin to grant user management access.
+        </AlertDescription>
+      </Alert>
     );
   }
 
-  const inputClass =
-    'mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400';
-
   return (
-    <form className="max-w-3xl space-y-6" onSubmit={onSubmit} noValidate>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <label htmlFor={nameId} className="block text-sm font-medium text-slate-800">
-            Name <span className="text-rose-500">*</span>
-          </label>
-          <input
-            id={nameId}
-            required
-            maxLength={255}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={inputClass}
-          />
+    <form className="flex max-w-3xl flex-col gap-6" onSubmit={handleSubmit(onSubmit)} noValidate>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <Label htmlFor="user-name">
+            Name <span className="text-destructive">*</span>
+          </Label>
+          <Input id="user-name" maxLength={255} {...register('name')} />
+          {errors.name ? (
+            <p className="text-sm text-destructive">{errors.name.message}</p>
+          ) : null}
         </div>
 
-        <div className="sm:col-span-2">
-          <label htmlFor={emailId} className="block text-sm font-medium text-slate-800">
-            Email <span className="text-rose-500">*</span>
-          </label>
-          <input
-            id={emailId}
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <Label htmlFor="user-email">
+            Email <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="user-email"
             type="email"
-            required
             maxLength={255}
             autoComplete="off"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputClass}
+            {...register('email')}
           />
+          {errors.email ? (
+            <p className="text-sm text-destructive">{errors.email.message}</p>
+          ) : null}
         </div>
 
-        <div>
-          <label htmlFor={passwordId} className="block text-sm font-medium text-slate-800">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="user-password">
             Password{' '}
             {mode === 'edit' ? (
-              <span className="font-normal text-slate-500">(leave blank to keep)</span>
+              <span className="font-normal text-muted-foreground">(leave blank to keep)</span>
             ) : (
-              <span className="text-rose-500">*</span>
+              <span className="text-destructive">*</span>
             )}
-          </label>
-          <input
-            id={passwordId}
+          </Label>
+          <Input
+            id="user-password"
             type="password"
-            required={mode === 'create'}
-            minLength={mode === 'create' ? 8 : undefined}
             autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputClass}
+            {...register('password')}
           />
+          {errors.password ? (
+            <p className="text-sm text-destructive">{errors.password.message}</p>
+          ) : null}
         </div>
 
-        <div>
-          <label htmlFor={confirmId} className="block text-sm font-medium text-slate-800">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="user-confirm">
             Confirm Password{' '}
-            {mode === 'create' ? <span className="text-rose-500">*</span> : null}
-          </label>
-          <input
-            id={confirmId}
+            {mode === 'create' ? <span className="text-destructive">*</span> : null}
+          </Label>
+          <Input
+            id="user-confirm"
             type="password"
-            required={mode === 'create'}
             autoComplete="new-password"
-            value={passwordConfirmation}
-            onChange={(e) => setPasswordConfirmation(e.target.value)}
-            className={inputClass}
+            {...register('passwordConfirmation')}
           />
+          {errors.passwordConfirmation ? (
+            <p className="text-sm text-destructive">{errors.passwordConfirmation.message}</p>
+          ) : null}
         </div>
 
-        <div>
-          <label htmlFor={roleId} className="block text-sm font-medium text-slate-800">
-            Role <span className="text-rose-500">*</span>
-          </label>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="user-role">
+            Role <span className="text-destructive">*</span>
+          </Label>
           <select
-            id={roleId}
-            required
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className={inputClass}
+            id="user-role"
+            className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            {...register('role')}
           >
             {roleOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -249,33 +289,36 @@ export function UserForm({ mode, user }: UserFormProps) {
           </select>
         </div>
 
-        <div className="flex items-end pb-2">
-          <label htmlFor={activeId} className="inline-flex items-center gap-2 text-sm text-slate-800">
-            <input
-              id={activeId}
-              type="checkbox"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300"
-            />
-            Account active
-          </label>
+        <div className="flex items-end pb-1">
+          <Controller
+            control={control}
+            name="isActive"
+            render={({ field }) => (
+              <label htmlFor="user-active" className="inline-flex items-center gap-2 text-sm">
+                <input
+                  id="user-active"
+                  type="checkbox"
+                  checked={field.value}
+                  onChange={(e) => field.onChange(e.target.checked)}
+                  className="size-4 rounded border-border"
+                />
+                Account active
+              </label>
+            )}
+          />
         </div>
       </div>
 
       {showSubscription ? (
-        <section className="space-y-4 border-t border-slate-200 pt-6">
-          <h3 className="text-sm font-semibold text-slate-900">Subscription</h3>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div>
-              <label htmlFor={planId} className="block text-sm font-medium text-slate-800">
-                Plan
-              </label>
+        <section className="flex flex-col gap-4 border-t border-border pt-6">
+          <h3 className="text-sm font-semibold text-foreground">Subscription</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="user-plan">Plan</Label>
               <select
-                id={planId}
-                value={plan}
-                onChange={(e) => setPlan(e.target.value)}
-                className={inputClass}
+                id="user-plan"
+                className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                {...register('plan')}
               >
                 <option value="">None</option>
                 {meta.plans.map((option) => (
@@ -285,16 +328,14 @@ export function UserForm({ mode, user }: UserFormProps) {
                 ))}
               </select>
             </div>
-            <div>
-              <label htmlFor={statusId} className="block text-sm font-medium text-slate-800">
-                Status <span className="text-rose-500">*</span>
-              </label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="user-status">
+                Status <span className="text-destructive">*</span>
+              </Label>
               <select
-                id={statusId}
-                required
-                value={subscriptionStatus}
-                onChange={(e) => setSubscriptionStatus(e.target.value)}
-                className={inputClass}
+                id="user-status"
+                className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                {...register('subscriptionStatus')}
               >
                 {meta.subscription_statuses.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -303,58 +344,47 @@ export function UserForm({ mode, user }: UserFormProps) {
                 ))}
               </select>
             </div>
-            <div>
-              <label htmlFor={startsId} className="block text-sm font-medium text-slate-800">
-                Starts at
-              </label>
-              <input
-                id={startsId}
-                type="date"
-                value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
-                className={inputClass}
-              />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="user-starts">Starts at</Label>
+              <Input id="user-starts" type="date" {...register('startsAt')} />
             </div>
-            <div>
-              <label htmlFor={endsId} className="block text-sm font-medium text-slate-800">
-                Ends at
-              </label>
-              <input
-                id={endsId}
-                type="date"
-                value={endsAt}
-                onChange={(e) => setEndsAt(e.target.value)}
-                className={inputClass}
-              />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="user-ends">Ends at</Label>
+              <Input id="user-ends" type="date" {...register('endsAt')} />
+              {errors.endsAt ? (
+                <p className="text-sm text-destructive">{errors.endsAt.message}</p>
+              ) : null}
             </div>
           </div>
         </section>
       ) : null}
 
-      {error ? (
-        <p role="alert" className="text-sm text-red-700">
-          {error}
-        </p>
+      {serverError ? (
+        <Alert variant="destructive">
+          <AlertDescription>{serverError}</AlertDescription>
+        </Alert>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-        >
-          {loading ? 'Saving…' : mode === 'create' ? 'Create user' : 'Save changes'}
-        </button>
-        <Link
-          href="/dashboard/users"
-          className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-        >
-          Cancel
-        </Link>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2Icon data-icon="inline-start" className="animate-spin" />
+              Saving…
+            </>
+          ) : mode === 'create' ? (
+            'Create user'
+          ) : (
+            'Save changes'
+          )}
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/dashboard/users">Cancel</Link>
+        </Button>
         {mode === 'edit' && user?.role === 'customer' ? (
           <Link
             href={`/dashboard/users/${user.id}/api-clients`}
-            className="text-sm font-medium text-slate-800 underline-offset-2 hover:underline"
+            className="text-sm font-medium text-primary underline-offset-2 hover:underline"
           >
             Manage API credentials
           </Link>

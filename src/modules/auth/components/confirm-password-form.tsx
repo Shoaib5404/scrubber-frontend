@@ -3,11 +3,16 @@
 import Link from 'next/link';
 import { FormEvent, useId, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Loader2Icon } from 'lucide-react';
 import { ApiClientError } from '@/lib/api/errors';
 import { tokenManager } from '@/lib/auth/token-manager';
 import { confirmPasswordRequest } from '../api';
 import { useAuthStore } from '../store/auth-store';
 import { homePathForRole } from '../types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export function ConfirmPasswordForm() {
   const router = useRouter();
@@ -43,12 +48,10 @@ export function ConfirmPasswordForm() {
   }
 
   return (
-    <form className="mt-8 space-y-5" onSubmit={onSubmit} noValidate>
-      <div>
-        <label htmlFor={passwordId} className="block text-sm font-medium text-slate-800">
-          Password
-        </label>
-        <input
+    <form className="mt-6 flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={passwordId}>Password</Label>
+        <Input
           id={passwordId}
           name="password"
           type="password"
@@ -56,32 +59,31 @@ export function ConfirmPasswordForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400"
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
         />
       </div>
 
       {error ? (
-        <p id={errorId} role="alert" className="text-sm text-red-700">
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription id={errorId}>{error}</AlertDescription>
+        </Alert>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {loading ? 'Confirming…' : 'Confirm'}
-      </button>
+      <Button type="submit" disabled={loading} className="w-full">
+        {loading ? (
+          <>
+            <Loader2Icon data-icon="inline-start" className="animate-spin" />
+            Confirming…
+          </>
+        ) : (
+          'Confirm'
+        )}
+      </Button>
 
-      <p className="text-center text-sm text-slate-600">
-        <Link
-          href={user ? homePathForRole(user.role) : '/login'}
-          className="font-medium text-slate-900 underline-offset-2 hover:underline"
-        >
-          Cancel
+      <p className="text-center text-sm text-muted-foreground">
+        <Link href="/login" className="font-medium text-foreground underline-offset-2 hover:underline">
+          Back to sign in
         </Link>
       </p>
     </form>

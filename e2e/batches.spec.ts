@@ -15,7 +15,7 @@ test.describe('batches', () => {
   test('customer sees only own batches and can open detail', async ({ page }) => {
     await login(page, customerEmail);
     await expect(page).toHaveURL(/\/portal/);
-    await expect(page.getByRole('heading', { name: 'Customer portal' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Batches' })).toBeVisible();
 
     await expect(page.getByTestId('batch-pagination')).toBeVisible({ timeout: 15_000 });
     const ownLink = page.getByRole('link', { name: 'e2e-customer-own.edi' });
@@ -31,7 +31,7 @@ test.describe('batches', () => {
   test('staff can see customer-owned batch on dashboard', async ({ page }) => {
     await login(page, adminEmail);
     await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.getByRole('heading', { name: 'Staff dashboard' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Batches' })).toBeVisible();
 
     const ownLink = page.getByRole('link', { name: 'e2e-customer-own.edi' });
     await expect(ownLink).toBeVisible({ timeout: 15_000 });

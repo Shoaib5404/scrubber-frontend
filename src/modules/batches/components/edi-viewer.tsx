@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { DownloadIcon, ExternalLinkIcon } from 'lucide-react';
 import { fetchBatchEdiViewer } from '../api';
 import { AsyncState, friendlyError } from './async-state';
+import { Button } from '@/components/ui/button';
 
 type EdiViewerProps = {
   batchId: number;
@@ -59,11 +61,11 @@ export function EdiViewer({ batchId, basePath }: EdiViewerProps) {
   }
 
   return (
-    <div>
-      <p className="mb-4 text-sm">
+    <div className="flex flex-col gap-4">
+      <p className="text-sm">
         <Link
           href={`${basePath}/batches/${batchId}`}
-          className="text-slate-600 underline-offset-2 hover:underline"
+          className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         >
           ← Back to batch
         </Link>
@@ -74,30 +76,24 @@ export function EdiViewer({ batchId, basePath }: EdiViewerProps) {
           <>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">Raw EDI</h2>
-                <p className="mt-1 text-sm text-slate-600">
+                <h2 className="text-xl font-semibold text-foreground">Raw EDI</h2>
+                <p className="mt-1 text-sm text-muted-foreground tabular-nums">
                   Batch #{batchId} · {filename}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={openInNewTab}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
-                >
+                <Button type="button" variant="outline" onClick={openInNewTab}>
+                  <ExternalLinkIcon data-icon="inline-start" />
                   Open in new tab
-                </button>
-                <button
-                  type="button"
-                  onClick={download}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
-                >
+                </Button>
+                <Button type="button" variant="outline" onClick={download}>
+                  <DownloadIcon data-icon="inline-start" />
                   Download
-                </button>
+                </Button>
               </div>
             </div>
             <pre
-              className="mt-6 max-h-[70vh] overflow-auto rounded-lg border border-slate-200 bg-white p-4 font-mono text-xs leading-relaxed text-slate-800 shadow-sm whitespace-pre-wrap break-all"
+              className="max-h-[70vh] overflow-auto rounded-lg border border-border bg-card p-4 font-mono text-xs leading-relaxed text-foreground whitespace-pre-wrap break-all"
               data-testid="edi-viewer-content"
             >
               {text}

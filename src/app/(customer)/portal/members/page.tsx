@@ -9,6 +9,20 @@ import {
   resendMyTenantInvite,
   type TenantMemberRow,
 } from '@/modules/tenant-members/api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export default function PortalMembersPage() {
   const user = useAuthStore((s) => s.user);
@@ -32,7 +46,9 @@ export default function PortalMembersPage() {
   if (!isTenantAdmin) {
     return (
       <AppShell title="Members" basePath="/portal">
-        <p className="text-sm text-slate-600">Only tenant admins can manage members.</p>
+        <Alert>
+          <AlertDescription>Only tenant admins can manage members.</AlertDescription>
+        </Alert>
       </AppShell>
     );
   }
@@ -57,33 +73,54 @@ export default function PortalMembersPage() {
   }
 
   return (
-    <AppShell title="Members" basePath="/portal">
-      {error ? <p className="mb-3 text-sm text-red-700">{error}</p> : null}
-      {message ? <p className="mb-3 text-sm text-emerald-700">{message}</p> : null}
+    <AppShell title="Members" description="Invite and manage organization members." basePath="/portal">
+      {error ? (
+        <Alert variant="destructive" className="mb-3">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      {message ? (
+        <Alert className="mb-3">
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      ) : null}
 
-      <div className="mb-6 overflow-x-auto rounded-md border border-slate-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Role</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium" />
-            </tr>
-          </thead>
-          <tbody>
+      <div className="mb-6 overflow-x-auto rounded-lg border border-border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((m) => (
-              <tr key={m.id} className="border-b border-slate-100">
-                <td className="px-4 py-3">{m.name}</td>
-                <td className="px-4 py-3">{m.email}</td>
-                <td className="px-4 py-3">{m.role}</td>
-                <td className="px-4 py-3">{m.is_active ? 'Active' : 'Pending / inactive'}</td>
-                <td className="px-4 py-3 text-right">
+              <TableRow key={m.id}>
+                <TableCell>{m.name}</TableCell>
+                <TableCell>{m.email}</TableCell>
+                <TableCell className="capitalize">{m.role}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={
+                      m.is_active
+                        ? 'rounded-md border-transparent bg-success/10 text-success'
+                        : 'rounded-md'
+                    }
+                  >
+                    {m.is_active ? 'Active' : 'Pending / inactive'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
                   {!m.is_active ? (
-                    <button
+                    <Button
                       type="button"
-                      className="text-sm font-medium underline"
+                      variant="link"
+                      size="sm"
+                      className="h-auto px-0"
                       onClick={() =>
                         void resendMyTenantInvite(m.email)
                           .then(() => setMessage(`Invite resent to ${m.email}`))
@@ -91,43 +128,57 @@ export default function PortalMembersPage() {
                       }
                     >
                       Resend
-                    </button>
+                    </Button>
                   ) : null}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      <form onSubmit={onInvite} className="max-w-lg space-y-3 rounded-md border border-slate-200 bg-white p-4">
-        <h2 className="font-medium text-slate-900">Invite member</h2>
-        <input
-          required
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        <input
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-        >
-          <option value="customer">Customer</option>
-          <option value="tenant_admin">Tenant admin</option>
-        </select>
-        <button type="submit" className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white">
-          Send invite
-        </button>
-      </form>
+      <Card className="max-w-lg">
+        <CardHeader>
+          <CardTitle className="text-base">Invite member</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={onInvite} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="member-email">Email</Label>
+              <Input
+                id="member-email"
+                required
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="member-name">Name</Label>
+              <Input
+                id="member-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="member-role">Role</Label>
+              <select
+                id="member-role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              >
+                <option value="customer">Customer</option>
+                <option value="tenant_admin">Tenant admin</option>
+              </select>
+            </div>
+            <Button type="submit" className="w-fit">
+              Send invite
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </AppShell>
   );
 }

@@ -3,7 +3,30 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { SearchIcon } from 'lucide-react';
 import { AsyncState, friendlyError } from '@/modules/batches/components/async-state';
+import { PaginationControls } from '@/components/layout/pagination-controls';
+import { TableSkeleton } from '@/components/layout/table-skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   createDomainReference,
   deleteDomainReference,
@@ -39,6 +62,12 @@ type ModalState =
   | { mode: 'edit' | 'view'; row: ReferenceRow }
   | null;
 
+function formatColumnLabel(col: string): string {
+  return col
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function DomainRecords({ domainSlug }: DomainRecordsProps) {
   const searchParams = useSearchParams();
   const initialSearch = searchFromParams(searchParams);
@@ -50,7 +79,7 @@ export function DomainRecords({ domainSlug }: DomainRecordsProps) {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState(initialSearch);
   const [search, setSearch] = useState(initialSearch);
-  const [isActiveFilter, setIsActiveFilter] = useState('');
+  const [isActiveFilter, setIsActiveFilter] = useState('all');
   const [data, setData] = useState<PaginatedRefs | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +116,7 @@ export function DomainRecords({ domainSlug }: DomainRecordsProps) {
         page,
         per_page: 25,
         search: search || undefined,
-        is_active: isActiveFilter || undefined,
+        is_active: isActiveFilter === 'all' ? undefined : isActiveFilter,
       });
       setData(result);
     } catch (err) {
@@ -218,48 +247,55 @@ export function DomainRecords({ domainSlug }: DomainRecordsProps) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-600">
-        <Link href="/dashboard/references" className="underline-offset-2 hover:underline">
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link
+          href="/dashboard/references"
+          className="font-medium text-primary underline-offset-2 hover:underline"
+        >
           Reference data
         </Link>
-        <span className="mx-2 text-slate-400">/</span>
-        <span className="text-slate-900">{title}</span>
-      </p>
+        <span className="text-border">/</span>
+        <span className="truncate font-medium text-foreground">{title}</span>
+      </nav>
 
       <AsyncState
         loading={metaLoading}
         error={metaError}
         empty={false}
         onRetry={() => void loadMeta()}
+        skeleton={<TableSkeleton rows={8} columns={6} />}
       >
-        <section aria-labelledby="domain-records-heading">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-            <h2 id="domain-records-heading" className="text-base font-semibold text-slate-900">
+        <section aria-labelledby="domain-records-heading" className="space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 id="domain-records-heading" className="text-base font-semibold text-foreground">
               {title}
             </h2>
             <div className="flex flex-wrap items-center gap-2">
               {domainSlug === 'icd10-codes' ? (
-                <Link
-                  href="/icd10-cm"
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
-                  data-testid="icd10-cm-browser-link"
-                >
-                  ICD-10-CM browser
-                </Link>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/icd10-cm" data-testid="icd10-cm-browser-link">
+                    ICD-10-CM browser
+                  </Link>
+                </Button>
               ) : null}
               {domainHasOp(ops, 'export') ? (
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   disabled={ioBusy}
                   onClick={() => void handleExport()}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50"
                   data-testid="reference-export"
                 >
                   Export JSON
-                </button>
+                </Button>
               ) : null}
               {domainHasOp(ops, 'import') ? (
-                <label className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 has-[:disabled]:opacity-50">
+                <label
+                  className={`inline-flex h-8 cursor-pointer items-center justify-center rounded-lg border border-border bg-background px-2.5 text-[0.8125rem] font-medium shadow-xs transition-colors hover:bg-muted ${
+                    ioBusy ? 'pointer-events-none opacity-50' : ''
+                  }`}
+                >
                   <span>{ioBusy ? 'Importing…' : 'Import file'}</span>
                   <input
                     type="file"
@@ -276,80 +312,73 @@ export function DomainRecords({ domainSlug }: DomainRecordsProps) {
                 </label>
               ) : null}
               {domainHasOp(ops, 'create') ? (
-                <button
-                  type="button"
-                  onClick={() => setModal({ mode: 'create' })}
-                  className="rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-800"
-                >
+                <Button type="button" size="sm" onClick={() => setModal({ mode: 'create' })}>
                   New record
-                </button>
+                </Button>
               ) : null}
             </div>
           </div>
 
           {ioMessage ? (
-            <div
-              className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
-              role="status"
-            >
-              {ioMessage}
-            </div>
+            <Alert className="border-success/30 bg-success/10 text-success">
+              <AlertDescription>{ioMessage}</AlertDescription>
+            </Alert>
           ) : null}
 
           <form
-            className="mb-4 flex flex-wrap items-end gap-3"
+            className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:flex-wrap sm:items-end"
             onSubmit={(e) => {
               e.preventDefault();
               setPage(1);
               setSearch(searchInput.trim());
             }}
           >
-            <label className="block text-sm">
-              <span className="mb-1 block text-slate-600">Search</span>
-              <input
-                type="search"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-                placeholder="Filter records…"
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-slate-600">Active</span>
-              <select
+            <div className="relative min-w-[220px] flex-1 space-y-1.5">
+              <Label htmlFor="reference-search" className="text-muted-foreground">
+                Search
+              </Label>
+              <div className="relative">
+                <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="reference-search"
+                  type="search"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="pl-9"
+                  placeholder="Filter records…"
+                />
+              </div>
+            </div>
+            <div className="w-full space-y-1.5 sm:w-[160px]">
+              <Label htmlFor="reference-active-filter" className="text-muted-foreground">
+                Active
+              </Label>
+              <Select
                 value={isActiveFilter}
-                onChange={(e) => {
-                  setIsActiveFilter(e.target.value);
+                onValueChange={(value) => {
+                  setIsActiveFilter(value ?? 'all');
                   setPage(1);
                 }}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
               >
-                <option value="">All</option>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
-            </label>
-            <button
-              type="submit"
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
-            >
+                <SelectTrigger id="reference-active-filter" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" variant="secondary" size="sm" className="sm:mb-0.5">
               Apply
-            </button>
+            </Button>
           </form>
 
           {actionError ? (
-            <div
-              className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-              role="alert"
-            >
-              {actionError}
-            </div>
-          ) : null}
-
-          {data ? (
-            <p className="mb-2 text-xs text-slate-500" data-testid="reference-pagination">
-              Page {data.meta.page} of {data.meta.last_page} · {data.meta.total} total
-            </p>
+            <Alert variant="destructive">
+              <AlertDescription>{actionError}</AlertDescription>
+            </Alert>
           ) : null}
 
           <AsyncState
@@ -358,112 +387,131 @@ export function DomainRecords({ domainSlug }: DomainRecordsProps) {
             empty={!loading && !!data && data.items.length === 0}
             emptyMessage="No records match your filters."
             onRetry={() => void loadRecords()}
+            skeleton={<TableSkeleton rows={8} columns={Math.max(columns.length, 5) + 1} />}
           >
             <div
-              className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm"
+              className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
               data-testid="reference-records-table"
             >
-              <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
+              <Table>
+                <TableHeader>
+                  <TableRow>
                     {columns.map((col) => (
-                      <th key={col} className="px-3 py-2 font-medium">
-                        {col}
-                      </th>
+                      <TableHead key={col}>{formatColumnLabel(col)}</TableHead>
                     ))}
-                    <th className="px-3 py-2 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data?.items.map((row) => {
                     const rowKey = row.id ?? JSON.stringify(row);
                     return (
-                      <tr key={String(rowKey)} className="hover:bg-slate-50">
-                        {columns.map((col) => (
-                          <td key={col} className="max-w-xs truncate px-3 py-2 text-slate-700">
-                            {formatCellValue(row[col])}
-                          </td>
-                        ))}
-                        <td className="whitespace-nowrap px-3 py-2">
-                          <div className="flex flex-wrap gap-1">
+                      <TableRow key={String(rowKey)}>
+                        {columns.map((col) => {
+                          const value = formatCellValue(row[col]);
+                          const isActiveCol = col === 'is_active';
+                          return (
+                            <TableCell
+                              key={col}
+                              className="max-w-[220px] truncate"
+                              title={String(value)}
+                            >
+                              {isActiveCol ? (
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    value === 'Yes' || value === 'true' || value === '1'
+                                      ? 'rounded-md border-transparent bg-success/10 text-success'
+                                      : 'rounded-md'
+                                  }
+                                >
+                                  {value === 'Yes' || value === 'true' || value === '1'
+                                    ? 'Active'
+                                    : value === 'No' || value === 'false' || value === '0'
+                                      ? 'Inactive'
+                                      : value}
+                                </Badge>
+                              ) : (
+                                value
+                              )}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-right">
+                          <div className="flex flex-wrap justify-end gap-1.5">
                             {domainSlug === 'articles' && row.article_id != null ? (
-                              <Link
-                                href={`/dashboard/articles/${encodeURIComponent(String(row.article_id))}${
-                                  row.article_version != null
-                                    ? `?ver=${encodeURIComponent(String(row.article_version))}`
-                                    : ''
-                                }`}
-                                className="rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-50"
-                                data-testid={`article-open-${row.article_id}`}
-                              >
-                                Open article
-                              </Link>
+                              <Button variant="outline" size="xs" asChild>
+                                <Link
+                                  href={`/dashboard/articles/${encodeURIComponent(String(row.article_id))}${
+                                    row.article_version != null
+                                      ? `?ver=${encodeURIComponent(String(row.article_version))}`
+                                      : ''
+                                  }`}
+                                  data-testid={`article-open-${row.article_id}`}
+                                >
+                                  Open article
+                                </Link>
+                              </Button>
                             ) : null}
                             {domainHasOp(ops, 'show') ? (
-                              <button
+                              <Button
                                 type="button"
+                                variant="outline"
+                                size="xs"
                                 onClick={() => void openView(row)}
-                                className="rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-50"
                               >
                                 View
-                              </button>
+                              </Button>
                             ) : null}
                             {domainHasOp(ops, 'update') ? (
-                              <button
+                              <Button
                                 type="button"
+                                variant="outline"
+                                size="xs"
                                 onClick={() => void openEdit(row)}
-                                className="rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-50"
                               >
                                 Edit
-                              </button>
+                              </Button>
                             ) : null}
                             {domainHasOp(ops, 'toggle_active') ? (
-                              <button
+                              <Button
                                 type="button"
+                                variant="outline"
+                                size="xs"
                                 onClick={() => void handleToggle(row)}
-                                className="rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-slate-50"
                               >
-                                Toggle active
-                              </button>
+                                Toggle
+                              </Button>
                             ) : null}
                             {domainHasOp(ops, 'destroy') ? (
-                              <button
+                              <Button
                                 type="button"
+                                variant="destructive"
+                                size="xs"
                                 onClick={() => void handleDelete(row)}
-                                className="rounded border border-red-200 px-2 py-0.5 text-xs text-red-800 hover:bg-red-50"
                               >
                                 Delete
-                              </button>
+                              </Button>
                             ) : null}
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
 
-            {data && data.meta.last_page > 1 ? (
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  disabled={page >= data.meta.last_page}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-            ) : null}
+              {data ? (
+                <PaginationControls
+                  page={data.meta.page}
+                  lastPage={data.meta.last_page}
+                  total={data.meta.total}
+                  onPageChange={setPage}
+                  className="px-3"
+                  data-testid="reference-pagination"
+                />
+              ) : null}
+            </div>
           </AsyncState>
         </section>
       </AsyncState>

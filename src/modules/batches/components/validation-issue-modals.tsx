@@ -7,6 +7,15 @@ import {
   NCCI_BYPASS_HELP_INTRO,
   NCCI_BYPASS_MODIFIERS,
 } from '../claim-form-options';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export type ValidationModalName = 'ncci-bypass-modifiers' | 'cerumen-plan-policy';
 
@@ -16,119 +25,93 @@ type ValidationIssueModalsProps = {
 };
 
 export function ValidationIssueModals({ open, onClose }: ValidationIssueModalsProps) {
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
-      role="presentation"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={`${open}-title`}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Dialog open={open != null} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         {open === 'ncci-bypass-modifiers' ? <NcciBypassModalBody onClose={onClose} /> : null}
         {open === 'cerumen-plan-policy' ? <CerumenPolicyModalBody onClose={onClose} /> : null}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function ModalChrome({
-  id,
+function ModalBody({
   title,
+  description,
   onClose,
   children,
 }: {
-  id: string;
   title: string;
+  description?: string;
   onClose: () => void;
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <h2 id={id} className="pr-4 text-lg font-semibold text-slate-900">
-          {title}
-        </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="shrink-0 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-          aria-label="Close"
-        >
-          <span aria-hidden="true">×</span>
-        </button>
-      </div>
+    <>
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+        {description ? <DialogDescription>{description}</DialogDescription> : null}
+      </DialogHeader>
       {children}
-      <div className="flex justify-end border-t border-slate-100 pt-4">
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-300"
-        >
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose}>
           Close
-        </button>
-      </div>
-    </div>
+        </Button>
+      </DialogFooter>
+    </>
   );
 }
 
 function NcciBypassModalBody({ onClose }: { onClose: () => void }) {
   return (
-    <ModalChrome id="ncci-bypass-modifiers-title" title="NCCI-associated modifiers" onClose={onClose}>
-      <p className="text-sm text-slate-600">{NCCI_BYPASS_HELP_INTRO}</p>
-      <p className="mt-5 mb-4 text-center text-sm font-medium text-slate-800">Approved modifier codes</p>
-      <ul className="m-0 grid max-h-[min(50vh,20rem)] list-none grid-cols-3 gap-x-3 gap-y-1.5 overflow-y-auto p-0 font-mono text-sm text-slate-900 sm:grid-cols-4">
+    <ModalBody
+      title="NCCI-associated modifiers"
+      description={NCCI_BYPASS_HELP_INTRO}
+      onClose={onClose}
+    >
+      <p className="text-center text-sm font-medium text-foreground">Approved modifier codes</p>
+      <ul className="m-0 grid max-h-[min(50vh,20rem)] list-none grid-cols-3 gap-x-3 gap-y-1.5 overflow-y-auto p-0 font-mono text-sm text-foreground sm:grid-cols-4">
         {NCCI_BYPASS_MODIFIERS.map((code) => (
           <li key={code}>{code}</li>
         ))}
       </ul>
-    </ModalChrome>
+    </ModalBody>
   );
 }
 
 function CerumenPolicyModalBody({ onClose }: { onClose: () => void }) {
   return (
-    <ModalChrome
-      id="cerumen-plan-policy-title"
+    <ModalBody
       title="Plan policy — impacted cerumen removal"
+      description="When procedure codes for removal of impacted cerumen are billed, at least one claim diagnosis must be from the supportive ICD range below."
       onClose={onClose}
     >
-      <p className="text-sm text-slate-600">
-        When procedure codes for removal of impacted cerumen are billed, at least one claim diagnosis
-        must be from the supportive ICD range below.
-      </p>
-      <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/50 p-4">
         <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Applicable procedures
           </p>
-          <ul className="m-0 flex list-none flex-wrap gap-2 p-0 font-mono text-sm text-slate-900">
+          <ul className="m-0 flex list-none flex-wrap gap-2 p-0 font-mono text-sm text-foreground">
             {CERUMEN_REMOVAL_PROCEDURE_CODES.map((code) => (
-              <li key={code} className="rounded border border-slate-200 bg-white px-2 py-0.5">
+              <li key={code} className="rounded border border-border bg-card px-2 py-0.5">
                 {code}
               </li>
             ))}
           </ul>
         </div>
         <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Supportive diagnosis codes (H61.2–H61.23)
           </p>
-          <ul className="m-0 flex list-none flex-wrap gap-2 p-0 font-mono text-sm text-slate-900">
+          <ul className="m-0 flex list-none flex-wrap gap-2 p-0 font-mono text-sm text-foreground">
             {CERUMEN_ALLOWED_ICD_DISPLAY.map((code) => (
-              <li key={code} className="rounded border border-slate-200 bg-white px-2 py-0.5">
+              <li key={code} className="rounded border border-border bg-card px-2 py-0.5">
                 {code}
               </li>
             ))}
           </ul>
         </div>
       </div>
-    </ModalChrome>
+    </ModalBody>
   );
 }

@@ -77,7 +77,7 @@ export function RequireAuth({
 
   if (status === 'unknown') {
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-600" role="status">
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground" role="status">
         Checking session…
       </div>
     );

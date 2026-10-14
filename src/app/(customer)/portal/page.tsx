@@ -1,31 +1,62 @@
 'use client';
 
-import Link from 'next/link';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { canUploadOrValidate, useAuthStore } from '@/modules/auth';
 import { AppShell, BatchList, BatchUpload } from '@/modules/batches';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+type PageStats = {
+  total: number;
+  inFlight: number;
+  complete: number;
+  error: number;
+};
 
 export default function CustomerHomePage() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [stats, setStats] = useState<PageStats | null>(null);
   const user = useAuthStore((s) => s.user);
   const canUpload = canUploadOrValidate(user);
 
+  const onStats = useCallback((next: PageStats) => {
+    setStats(next);
+  }, []);
+
   return (
-    <AppShell title="Customer portal" basePath="/portal">
-      <div className="space-y-8">
-        <Link
-          href="/portal/integrations"
-          className="block rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-        >
-          <span className="font-medium text-slate-900">Integrations</span>
-          <span className="mt-1 block text-xs text-slate-600">
-            View your API Client ID and rotate your client secret.
-          </span>
-        </Link>
+    <AppShell
+      title="Batches"
+      description="Upload EDI files and review claim validation results for your organization."
+      basePath="/portal"
+    >
+      <div className="flex flex-col gap-6">
+        {stats ? (
+          <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              ['Total batches', stats.total],
+              ['In progress (page)', stats.inFlight],
+              ['Complete (page)', stats.complete],
+              ['Errors (page)', stats.error],
+            ].map(([label, value]) => (
+              <Card key={String(label)} size="sm">
+                <CardHeader className="pb-0">
+                  <CardTitle className="text-xs font-medium text-muted-foreground">
+                    {label}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dd className="text-2xl font-semibold tabular-nums text-foreground">
+                    {value}
+                  </dd>
+                </CardContent>
+              </Card>
+            ))}
+          </dl>
+        ) : null}
+
         {canUpload ? (
           <BatchUpload onUploaded={() => setRefreshKey((k) => k + 1)} />
         ) : null}
-        <BatchList basePath="/portal" refreshKey={refreshKey} />
+        <BatchList basePath="/portal" refreshKey={refreshKey} onStats={onStats} />
       </div>
     </AppShell>
   );

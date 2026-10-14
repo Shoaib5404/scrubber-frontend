@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import { Loader2Icon } from 'lucide-react';
 import { ApiClientError } from '@/lib/api/errors';
 import {
   getPermissionsMatrix,
@@ -8,6 +9,17 @@ import {
   type PermissionMeta,
   type PermissionsMatrixData,
 } from '../permissions-api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -84,39 +96,43 @@ export function PermissionsMatrix() {
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-600">Loading permissions…</p>;
+    return (
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-2/3" />
+      </div>
+    );
   }
 
   if (!data) {
     return (
-      <p role="alert" className="text-sm text-red-700">
-        {error ?? 'Unable to load permissions.'}
-      </p>
+      <Alert variant="destructive">
+        <AlertDescription>{error ?? 'Unable to load permissions.'}</AlertDescription>
+      </Alert>
     );
   }
 
   const groups = Object.entries(data.grouped);
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <p className="text-sm text-slate-600">
+    <form onSubmit={onSubmit} className="flex flex-col gap-6">
+      <p className="text-sm text-muted-foreground">
         Configure which permissions Admin and User roles receive. Super Admin always has full
         access. Customers have no staff permissions.
       </p>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[36rem] text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-slate-700">
-              <th className="px-4 py-3 font-medium">Permission</th>
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <Table className="min-w-[36rem]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Permission</TableHead>
               {data.roles.map((role) => (
-                <th key={role} className="px-4 py-3 font-medium">
-                  {ROLE_LABELS[role] ?? role}
-                </th>
+                <TableHead key={role}>{ROLE_LABELS[role] ?? role}</TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {groups.map(([group, perms]) => (
               <GroupRows
                 key={group}
@@ -127,28 +143,33 @@ export function PermissionsMatrix() {
                 onToggle={toggle}
               />
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {error ? (
-        <p role="alert" className="text-sm text-red-700">
-          {error}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : null}
       {message ? (
-        <p role="status" className="text-sm text-emerald-700">
-          {message}
-        </p>
+        <Alert>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-      >
-        {saving ? 'Saving…' : 'Save permissions'}
-      </button>
+      <div>
+        <Button type="submit" disabled={saving}>
+          {saving ? (
+            <>
+              <Loader2Icon data-icon="inline-start" className="animate-spin" />
+              Saving…
+            </>
+          ) : (
+            'Save permissions'
+          )}
+        </Button>
+      </div>
     </form>
   );
 }
@@ -168,34 +189,37 @@ function GroupRows({
 }) {
   return (
     <>
-      <tr className="border-b border-slate-100 bg-slate-50/80">
-        <td colSpan={1 + roles.length} className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <TableRow className="bg-muted/40 hover:bg-muted/40">
+        <TableCell
+          colSpan={1 + roles.length}
+          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+        >
           {group}
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {perms.map((perm) => (
-        <tr key={perm.value} className="border-b border-slate-100">
-          <td className="px-4 py-3">
-            <div className="font-medium text-slate-900">{perm.label}</div>
-            <div className="text-xs text-slate-500">{perm.description}</div>
-          </td>
+        <TableRow key={perm.value}>
+          <TableCell>
+            <div className="font-medium text-foreground">{perm.label}</div>
+            <div className="text-xs text-muted-foreground">{perm.description}</div>
+          </TableCell>
           {roles.map((role) => {
             const checked = (selected[role] ?? []).includes(perm.value);
             const id = `${role}-${perm.value}`;
             return (
-              <td key={role} className="px-4 py-3">
+              <TableCell key={role}>
                 <input
                   id={id}
                   type="checkbox"
                   checked={checked}
                   onChange={() => onToggle(role, perm.value)}
-                  className="h-4 w-4 rounded border-slate-300"
+                  className="size-4 rounded border-border"
                   aria-label={`${ROLE_LABELS[role] ?? role}: ${perm.label}`}
                 />
-              </td>
+              </TableCell>
             );
           })}
-        </tr>
+        </TableRow>
       ))}
     </>
   );

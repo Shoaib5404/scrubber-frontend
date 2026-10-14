@@ -1,7 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flexRender } from '@tanstack/react-table';
+import {
+  getCoreRowModel,
+  useLegacyTable,
+  type LegacyColumnDef,
+} from '@tanstack/react-table/legacy';
+import { FileCode2Icon, Loader2Icon, RefreshCwIcon } from 'lucide-react';
 import { canUploadOrValidate, useAuthStore } from '@/modules/auth';
 import { getBatch, getBatchStatus, listBatchClaims, validateBatch } from '../api';
 import {
@@ -14,6 +21,19 @@ import {
 } from '../types';
 import { AsyncState, friendlyError } from './async-state';
 import { ClaimStatusBadge, StatusBadge } from './status-badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { EmptyState } from '@/components/layout/empty-state';
+import { PaginationControls } from '@/components/layout/pagination-controls';
 
 type BatchDetailProps = {
   batchId: number;
@@ -34,28 +54,31 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
   const [pollLabel, setPollLabel] = useState<string | null>(null);
   const reloadClaimsAfterTerminal = useRef(false);
 
-  const load = useCallback(async (opts?: { quiet?: boolean }) => {
-    if (!opts?.quiet) {
-      setLoading(true);
-    }
-    setError(null);
-    try {
-      const [detail, claimPage] = await Promise.all([
-        getBatch(batchId),
-        listBatchClaims(batchId, { page, per_page: 20 }),
-      ]);
-      setBatch(detail.batch);
-      setStats(detail.statistics);
-      setClaims(claimPage);
-    } catch (err) {
-      setError(friendlyError(err));
-      setBatch(null);
-    } finally {
+  const load = useCallback(
+    async (opts?: { quiet?: boolean }) => {
       if (!opts?.quiet) {
-        setLoading(false);
+        setLoading(true);
       }
-    }
-  }, [batchId, page]);
+      setError(null);
+      try {
+        const [detail, claimPage] = await Promise.all([
+          getBatch(batchId),
+          listBatchClaims(batchId, { page, per_page: 20 }),
+        ]);
+        setBatch(detail.batch);
+        setStats(detail.statistics);
+        setClaims(claimPage);
+      } catch (err) {
+        setError(friendlyError(err));
+        setBatch(null);
+      } finally {
+        if (!opts?.quiet) {
+          setLoading(false);
+        }
+      }
+    },
+    [batchId, page],
+  );
 
   useEffect(() => {
     void load();
@@ -126,9 +149,7 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
       const { httpStatus, body } = await validateBatch(batchId, force);
       if (httpStatus === 202 || body.data.status === 'under_processing') {
         reloadClaimsAfterTerminal.current = true;
-        setActionMsg(
-          body.message ?? 'Validation queued. Status will update automatically.',
-        );
+        setActionMsg(body.message ?? 'Validation queued. Status will update automatically.');
       } else {
         setActionMsg(body.message ?? `Validation status: ${body.data.status}`);
       }
@@ -140,10 +161,57 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
     }
   }
 
+  const claimColumns = useMemo<LegacyColumnDef<ClaimSummary>[]>(
+    () => [
+      {
+        accessorKey: 'claim_id',
+        header: 'Claim ID',
+        cell: ({ row }) => (
+          <Link
+            href={`${basePath}/claims/${row.original.id}`}
+            className="font-medium text-foreground underline-offset-2 hover:underline"
+            data-testid={`claim-link-${row.original.id}`}
+          >
+            {row.original.claim_id}
+          </Link>
+        ),
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => <ClaimStatusBadge status={row.original.status} />,
+      },
+      {
+        accessorKey: 'total_charge',
+        header: 'Charge',
+        cell: ({ row }) => (
+          <span className="tabular-nums">{row.original.total_charge.toFixed(2)}</span>
+        ),
+      },
+      {
+        accessorKey: 'payer_name',
+        header: 'Payer',
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.payer_name ?? '—'}</span>
+        ),
+      },
+    ],
+    [basePath],
+  );
+
+  const claimTable = useLegacyTable({
+    data: claims?.data ?? [],
+    columns: claimColumns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
   return (
-    <div>
-      <p className="mb-4 text-sm">
-        <Link href={basePath} className="text-slate-600 underline-offset-2 hover:underline">
+    <div className="flex flex-col gap-4">
+      <p className="text-sm">
+        <Link
+          href={basePath}
+          className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
           ← Back to batches
         </Link>
       </p>
@@ -153,201 +221,197 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
           <>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">{batch.original_filename}</h2>
-                <p className="mt-1 text-sm text-slate-600">Batch #{batch.id}</p>
+                <h2 className="text-xl font-semibold text-foreground">
+                  {batch.original_filename}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground tabular-nums">
+                  Batch #{batch.id}
+                </p>
                 <div className="mt-2">
                   <StatusBadge status={batch.status} />
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`${basePath}/batches/${batchId}/edi`}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
-                >
-                  View EDI
-                </Link>
+                <Button variant="outline" asChild>
+                  <Link href={`${basePath}/batches/${batchId}/edi`}>
+                    <FileCode2Icon data-icon="inline-start" />
+                    View EDI
+                  </Link>
+                </Button>
                 {canValidate ? (
                   <>
-                    <button
+                    <Button
                       type="button"
                       disabled={actionBusy}
                       onClick={() => void onValidate(false)}
-                      className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
                     >
+                      {actionBusy ? (
+                        <Loader2Icon data-icon="inline-start" className="animate-spin" />
+                      ) : (
+                        <RefreshCwIcon data-icon="inline-start" />
+                      )}
                       {actionBusy ? 'Working…' : 'Run / check validation'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="outline"
                       disabled={actionBusy}
                       onClick={() => void onValidate(true)}
-                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-60"
                     >
                       Force re-validate
-                    </button>
+                    </Button>
                   </>
                 ) : null}
               </div>
             </div>
 
             {isBatchStatusPollable(batch.status) ? (
-              <div
-                className="mt-3 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-900"
-                role="status"
-                data-testid="batch-status-poll-banner"
-              >
-                {batch.status === 'validating'
-                  ? 'Validation in progress…'
-                  : 'Processing…'}{' '}
-                <span className="text-indigo-700">
-                  ({pollLabel ?? batch.status}) — refreshing every 3s
-                </span>
-              </div>
+              <Alert data-testid="batch-status-poll-banner">
+                <AlertDescription>
+                  {batch.status === 'validating' ? 'Validation in progress…' : 'Processing…'}{' '}
+                  <span className="text-muted-foreground">
+                    ({pollLabel ?? batch.status}) — refreshing every 3s
+                  </span>
+                </AlertDescription>
+              </Alert>
             ) : null}
 
             {actionMsg ? (
-              <p className="mt-3 text-sm text-slate-700" role="status" data-testid="validate-message">
-                {actionMsg}
-              </p>
+              <Alert data-testid="validate-message">
+                <AlertDescription>{actionMsg}</AlertDescription>
+              </Alert>
             ) : null}
 
             {stats ? (
-              <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
                   ['Total claims', stats.total_claims],
                   ['Valid', stats.valid_claims],
                   ['Warnings', stats.warning_claims],
                   ['Errors', stats.error_claims],
                 ].map(([label, value]) => (
-                  <div
-                    key={String(label)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm"
-                  >
-                    <dt className="text-xs text-slate-500">{label}</dt>
-                    <dd className="text-lg font-semibold text-slate-900">{value}</dd>
-                  </div>
+                  <Card key={String(label)} size="sm">
+                    <CardHeader className="pb-0">
+                      <CardTitle className="text-xs font-medium text-muted-foreground">
+                        {label}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dd className="text-lg font-semibold tabular-nums text-foreground">
+                        {value}
+                      </dd>
+                    </CardContent>
+                  </Card>
                 ))}
               </dl>
             ) : null}
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2" data-testid="isa-gs-envelope">
-              <section
-                className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-                aria-labelledby="isa-heading"
-              >
-                <h3 id="isa-heading" className="mb-3 text-base font-semibold text-slate-900">
-                  Interchange (ISA)
-                </h3>
-                <dl className="space-y-2 text-sm">
-                  {(
-                    [
-                      ['Sender ID', batch.isa_sender_id],
-                      ['Receiver ID', batch.isa_receiver_id],
-                      ['Control #', batch.isa_control_number],
-                      ['ISA Date', batch.isa_date],
-                      ['BHT Date', batch.bht_date],
-                    ] as const
-                  ).map(([label, value]) => (
-                    <div key={label} className="flex justify-between gap-4">
-                      <dt className="text-slate-500">{label}</dt>
-                      <dd className="font-medium text-slate-900">{value ?? '—'}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-              <section
-                className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-                aria-labelledby="gs-heading"
-              >
-                <h3 id="gs-heading" className="mb-3 text-base font-semibold text-slate-900">
-                  Functional Group (GS)
-                </h3>
-                <dl className="space-y-2 text-sm">
-                  {(
-                    [
-                      ['Sender Code', batch.gs_sender_code],
-                      ['Receiver Code', batch.gs_receiver_code],
-                      ['Control #', batch.gs_control_number],
-                      ['Version', batch.gs_version_code ?? batch.gs_version],
-                    ] as const
-                  ).map(([label, value]) => (
-                    <div key={label} className="flex justify-between gap-4">
-                      <dt className="text-slate-500">{label}</dt>
-                      <dd className="font-medium text-slate-900">{value ?? '—'}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
+            <div className="grid gap-4 md:grid-cols-2" data-testid="isa-gs-envelope">
+              <Card>
+                <CardHeader>
+                  <CardTitle id="isa-heading" className="text-base">
+                    Interchange (ISA)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="flex flex-col gap-2 text-sm">
+                    {(
+                      [
+                        ['Sender ID', batch.isa_sender_id],
+                        ['Receiver ID', batch.isa_receiver_id],
+                        ['Control #', batch.isa_control_number],
+                        ['ISA Date', batch.isa_date],
+                        ['BHT Date', batch.bht_date],
+                      ] as const
+                    ).map(([label, value]) => (
+                      <div key={label} className="flex justify-between gap-4">
+                        <dt className="text-muted-foreground">{label}</dt>
+                        <dd className="font-medium text-foreground tabular-nums">
+                          {value ?? '—'}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle id="gs-heading" className="text-base">
+                    Functional Group (GS)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="flex flex-col gap-2 text-sm">
+                    {(
+                      [
+                        ['Sender Code', batch.gs_sender_code],
+                        ['Receiver Code', batch.gs_receiver_code],
+                        ['Control #', batch.gs_control_number],
+                        ['Version', batch.gs_version_code ?? batch.gs_version],
+                      ] as const
+                    ).map(([label, value]) => (
+                      <div key={label} className="flex justify-between gap-4">
+                        <dt className="text-muted-foreground">{label}</dt>
+                        <dd className="font-medium text-foreground tabular-nums">
+                          {value ?? '—'}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </CardContent>
+              </Card>
             </div>
 
-            <section className="mt-8" aria-labelledby="claims-heading">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 id="claims-heading" className="text-base font-semibold">
-                  Claims
-                </h3>
-                {claims ? (
-                  <p className="text-xs text-slate-500" data-testid="claim-pagination">
-                    Page {claims.current_page} of {claims.last_page} · {claims.total} total
-                  </p>
-                ) : null}
-              </div>
+            <section aria-labelledby="claims-heading" className="flex flex-col gap-3">
+              <h3 id="claims-heading" className="text-base font-semibold">
+                Claims
+              </h3>
 
               {claims && claims.data.length === 0 ? (
-                <p className="text-sm text-slate-600">No claims in this batch.</p>
+                <EmptyState title="No claims" description="No claims in this batch." />
               ) : (
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                  <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-                    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                      <tr>
-                        <th className="px-4 py-3 font-medium">Claim ID</th>
-                        <th className="px-4 py-3 font-medium">Status</th>
-                        <th className="px-4 py-3 font-medium">Charge</th>
-                        <th className="px-4 py-3 font-medium">Payer</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {claims?.data.map((claim) => (
-                        <tr key={claim.id}>
-                          <td className="px-4 py-3">
-                            <Link
-                              href={`${basePath}/claims/${claim.id}`}
-                              className="font-medium text-slate-900 underline-offset-2 hover:underline"
-                              data-testid={`claim-link-${claim.id}`}
-                            >
-                              {claim.claim_id}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3">
-                            <ClaimStatusBadge status={claim.status} />
-                          </td>
-                          <td className="px-4 py-3">{claim.total_charge.toFixed(2)}</td>
-                          <td className="px-4 py-3 text-slate-600">{claim.payer_name ?? '—'}</td>
-                        </tr>
+                <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                  <Table>
+                    <TableHeader>
+                      {claimTable.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id}>
+                          {headerGroup.headers.map((header) => (
+                            <TableHead key={header.id}>
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext(),
+                                  )}
+                            </TableHead>
+                          ))}
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableHeader>
+                    <TableBody>
+                      {claimTable.getRowModel().rows.map((row) => (
+                        <TableRow key={row.id}>
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {claims ? (
+                    <PaginationControls
+                      page={claims.current_page}
+                      lastPage={claims.last_page}
+                      total={claims.total}
+                      onPageChange={setPage}
+                      className="px-3"
+                      data-testid="claim-pagination"
+                    />
+                  ) : null}
                 </div>
               )}
-
-              {claims && claims.last_page > 1 ? (
-                <div className="mt-3 flex gap-2">
-                  <button
-                    type="button"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="rounded-md border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    type="button"
-                    disabled={page >= claims.last_page}
-                    onClick={() => setPage((p) => p + 1)}
-                    className="rounded-md border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
-              ) : null}
             </section>
           </>
         ) : null}

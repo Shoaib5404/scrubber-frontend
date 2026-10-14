@@ -19,11 +19,11 @@ export function Icd10CmNotes({ notes }: { notes: IcdCmNotes }) {
   return (
     <div className="mt-4 space-y-3">
       {blocks.map((block) => (
-        <div key={block.key} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div key={block.key} className="rounded-lg border border-border bg-muted/50 p-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {block.title}
           </h4>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground/90">
             {(notes[block.key] ?? []).map((line, idx) => (
               <li key={`${block.key}-${idx}`}>{line}</li>
             ))}

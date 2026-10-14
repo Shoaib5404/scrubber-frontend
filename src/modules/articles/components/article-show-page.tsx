@@ -36,14 +36,14 @@ function AccordionSection({
 }) {
   if (empty) return null;
   return (
-    <section className="rounded-lg border border-slate-200 bg-white shadow-sm" data-section={id}>
+    <section className="rounded-lg border border-border bg-white shadow-sm" data-section={id}>
       <button
         type="button"
         className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
         aria-expanded={open}
         onClick={onToggle}
       >
-        <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+        <h3 className="text-base font-semibold text-foreground">{title}</h3>
         <span className="text-slate-400" aria-hidden="true">
           {open ? '−' : '+'}
         </span>
@@ -58,8 +58,8 @@ function KeyValueGrid({ rows }: { rows: Array<[string, string]> }) {
     <dl className="grid gap-3 sm:grid-cols-2">
       {rows.map(([label, value]) => (
         <div key={label}>
-          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
-          <dd className="mt-0.5 whitespace-pre-wrap text-sm text-slate-800">{value || '—'}</dd>
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</dt>
+          <dd className="mt-0.5 whitespace-pre-wrap text-sm text-foreground">{value || '—'}</dd>
         </div>
       ))}
     </dl>
@@ -76,17 +76,17 @@ function CodingGroupList({
   if (!groups || groups.length === 0) return null;
   return (
     <div className="space-y-3">
-      <h4 className="text-sm font-semibold text-slate-800">{title}</h4>
+      <h4 className="text-sm font-semibold text-foreground">{title}</h4>
       {groups.map((g, idx) => {
         const codes = Array.isArray(g.codes) ? (g.codes as Array<Record<string, unknown>>) : [];
         const groupLabel = str(g.group ?? g.code_group ?? idx + 1);
         return (
-          <div key={idx} className="rounded-md border border-slate-200 bg-slate-50 p-3">
-            <p className="text-xs font-medium text-slate-500">Group {groupLabel}</p>
+          <div key={idx} className="rounded-md border border-border bg-muted/50 p-3">
+            <p className="text-xs font-medium text-muted-foreground">Group {groupLabel}</p>
             {codes.length === 0 ? (
-              <p className="mt-1 text-sm text-slate-600">No codes</p>
+              <p className="mt-1 text-sm text-muted-foreground">No codes</p>
             ) : (
-              <ul className="mt-2 grid gap-1 font-mono text-sm text-slate-800 sm:grid-cols-2 md:grid-cols-3">
+              <ul className="mt-2 grid gap-1 font-mono text-sm text-foreground sm:grid-cols-2 md:grid-cols-3">
                 {codes.map((c, i) => (
                   <li key={i}>{str(c.hcpc_code_id ?? c.icd10_code_id ?? c.code ?? c.icd10_code)}</li>
                 ))}
@@ -181,7 +181,7 @@ export function ArticleShowPage({
       <p className="mb-4 text-sm">
         <Link
           href="/dashboard/references/articles"
-          className="text-slate-600 underline-offset-2 hover:underline"
+          className="text-muted-foreground underline-offset-2 hover:underline"
         >
           ← Articles
         </Link>
@@ -192,15 +192,15 @@ export function ArticleShowPage({
           <>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">
+                <h2 className="text-xl font-semibold text-foreground">
                   Article {str(article.article_id)}
                   {article.article_version != null
                     ? ` · v${str(article.article_version)}`
                     : ''}
                 </h2>
-                <p className="mt-1 text-sm text-slate-700">{str(article.title) || 'Untitled'}</p>
+                <p className="mt-1 text-sm text-foreground/90">{str(article.title) || 'Untitled'}</p>
                 {str(article.status) ? (
-                  <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
+                  <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
                     {str(article.status)}
                   </p>
                 ) : null}
@@ -209,14 +209,14 @@ export function ArticleShowPage({
                 <button
                   type="button"
                   onClick={expandAll}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                  className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted/50"
                 >
                   Expand all
                 </button>
                 <button
                   type="button"
                   onClick={collapseAll}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                  className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted/50"
                 >
                   Collapse all
                 </button>
@@ -231,9 +231,9 @@ export function ArticleShowPage({
                 onToggle={() => toggle('contractors')}
               >
                 {(data?.article_contractor_rows?.length ?? 0) === 0 ? (
-                  <p className="text-sm text-slate-600">No contractors listed.</p>
+                  <p className="text-sm text-muted-foreground">No contractors listed.</p>
                 ) : (
-                  <ul className="divide-y divide-slate-100 text-sm">
+                  <ul className="divide-y divide-border text-sm">
                     {data!.article_contractor_rows.map((row, idx) => {
                       const contractor =
                         row.contractor && typeof row.contractor === 'object'
@@ -248,9 +248,9 @@ export function ArticleShowPage({
                         row.contractor_id;
                       return (
                         <li key={idx} className="py-2">
-                          <span className="font-medium text-slate-900">{str(name)}</span>
+                          <span className="font-medium text-foreground">{str(name)}</span>
                           {row.jurisdiction_states ? (
-                            <span className="ml-2 text-slate-600">
+                            <span className="ml-2 text-muted-foreground">
                               ({str(row.jurisdiction_states)})
                             </span>
                           ) : null}
@@ -289,9 +289,9 @@ export function ArticleShowPage({
                 onToggle={() => toggle('responseToComments')}
                 empty={!hasRtc}
               >
-                <ul className="space-y-2 text-sm text-slate-700">
+                <ul className="space-y-2 text-sm text-foreground/90">
                   {data!.article_response_to_comments.map((row, idx) => (
-                    <li key={idx} className="rounded border border-slate-200 bg-slate-50 p-3">
+                    <li key={idx} className="rounded border border-border bg-muted/50 p-3">
                       {str(row.response ?? row.comment ?? JSON.stringify(row))}
                     </li>
                   ))}
@@ -317,13 +317,13 @@ export function ArticleShowPage({
                   <CodingGroupList title="ICD-10-PCS" groups={coding?.icd10_pcs} />
                   {(coding?.bill_codes?.length ?? 0) > 0 ? (
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-800">Bill codes</h4>
+                      <h4 className="text-sm font-semibold text-foreground">Bill codes</h4>
                       <ul className="mt-2 grid gap-1 font-mono text-sm sm:grid-cols-2 md:grid-cols-3">
                         {coding!.bill_codes!.map((c, i) => (
                           <li key={i}>
                             {str(c.bill_code_id)}
                             {c.description ? (
-                              <span className="font-sans text-slate-600"> — {str(c.description)}</span>
+                              <span className="font-sans text-muted-foreground"> — {str(c.description)}</span>
                             ) : null}
                           </li>
                         ))}
@@ -332,13 +332,13 @@ export function ArticleShowPage({
                   ) : null}
                   {(coding?.revenue_codes?.length ?? 0) > 0 ? (
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-800">Revenue codes</h4>
+                      <h4 className="text-sm font-semibold text-foreground">Revenue codes</h4>
                       <ul className="mt-2 grid gap-1 font-mono text-sm sm:grid-cols-2 md:grid-cols-3">
                         {coding!.revenue_codes!.map((c, i) => (
                           <li key={i}>
                             {str(c.revenue_code_id)}
                             {c.description ? (
-                              <span className="font-sans text-slate-600"> — {str(c.description)}</span>
+                              <span className="font-sans text-muted-foreground"> — {str(c.description)}</span>
                             ) : null}
                           </li>
                         ))}
@@ -347,8 +347,8 @@ export function ArticleShowPage({
                   ) : null}
                   {coding?.add_icd10_info ? (
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-800">Additional ICD-10 info</h4>
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">
+                      <h4 className="text-sm font-semibold text-foreground">Additional ICD-10 info</h4>
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-foreground/90">
                         {str(coding.add_icd10_info)}
                       </p>
                     </div>
@@ -366,7 +366,7 @@ export function ArticleShowPage({
                 <div className="space-y-4 text-sm">
                   {(data?.article_related_documents?.length ?? 0) > 0 ? (
                     <div>
-                      <h4 className="font-semibold text-slate-800">Related LCD / articles</h4>
+                      <h4 className="font-semibold text-foreground">Related LCD / articles</h4>
                       <ul className="mt-2 list-disc space-y-1 pl-5">
                         {data!.article_related_documents.map((doc, idx) => (
                           <li key={idx}>
@@ -378,7 +378,7 @@ export function ArticleShowPage({
                   ) : null}
                   {(data?.article_related_ncd_documents?.length ?? 0) > 0 ? (
                     <div>
-                      <h4 className="font-semibold text-slate-800">Related NCD</h4>
+                      <h4 className="font-semibold text-foreground">Related NCD</h4>
                       <ul className="mt-2 list-disc space-y-1 pl-5">
                         {data!.article_related_ncd_documents.map((doc, idx) => (
                           <li key={idx}>{str(doc.title ?? doc.ncd_id)}</li>
@@ -389,7 +389,7 @@ export function ArticleShowPage({
                   {Object.entries(data?.article_associated_urls ?? {}).map(([type, urls]) =>
                     urls.length ? (
                       <div key={type}>
-                        <h4 className="font-semibold text-slate-800">
+                        <h4 className="font-semibold text-foreground">
                           {data!.associated_document_url_headings?.[type] ?? `URLs (${type})`}
                         </h4>
                         <ul className="mt-2 list-disc space-y-1 pl-5">
@@ -400,7 +400,7 @@ export function ArticleShowPage({
                                   href={str(u.url)}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-slate-900 underline"
+                                  className="text-foreground underline"
                                 >
                                   {str(u.title ?? u.url)}
                                 </a>
@@ -423,7 +423,7 @@ export function ArticleShowPage({
                 onToggle={() => toggle('keywords')}
                 empty={!hasKeywords}
               >
-                <p className="whitespace-pre-wrap text-sm text-slate-700">
+                <p className="whitespace-pre-wrap text-sm text-foreground/90">
                   {str(article.keywords)}
                 </p>
               </AccordionSection>
@@ -442,7 +442,7 @@ export function ArticleShowPage({
                       <li key={idx}>
                         <Link
                           href={`/dashboard/articles/${articleId}${Number.isFinite(version) ? `?ver=${version}` : ''}`}
-                          className="text-slate-900 underline-offset-2 hover:underline"
+                          className="text-foreground underline-offset-2 hover:underline"
                         >
                           Version {str(v.article_version)}
                           {v.article_eff_date
