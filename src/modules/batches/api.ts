@@ -29,6 +29,10 @@ export type ListBatchesParams = {
   per_page?: number;
   status?: string;
   search?: string;
+  date_from?: string;
+  date_to?: string;
+  /** Staff-only tenant filter. */
+  tenant_id?: number;
 };
 
 export async function listBatches(
@@ -39,6 +43,11 @@ export async function listBatches(
   if (params.per_page) qs.set('per_page', String(params.per_page));
   if (params.status) qs.set('status', params.status);
   if (params.search) qs.set('search', params.search);
+  if (params.date_from) qs.set('date_from', params.date_from);
+  if (params.date_to) qs.set('date_to', params.date_to);
+  if (params.tenant_id != null && params.tenant_id > 0) {
+    qs.set('tenant_id', String(params.tenant_id));
+  }
   const query = qs.toString();
   const res = await apiRequest<ApiSuccess<LengthAwarePaginator<BatchSummary>>>(
     'GET',

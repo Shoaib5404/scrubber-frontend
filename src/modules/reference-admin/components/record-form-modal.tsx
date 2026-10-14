@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { AppSelect } from '@/components/forms';
 import {
   columnKeysFromItems,
   formatCellValue,
@@ -137,16 +138,17 @@ function RecordFormModalBody({
                     className="w-full rounded-md border border-border px-3 py-2 text-foreground"
                   />
                 ) : field.type === 'boolean' ? (
-                  <select
+                  <AppSelect
+                    id={`ref-field-${field.key}`}
                     value={values[field.key] ?? 'false'}
-                    onChange={(ev) =>
-                      setValues((prev) => ({ ...prev, [field.key]: ev.target.value }))
+                    onValueChange={(v) =>
+                      setValues((prev) => ({ ...prev, [field.key]: v }))
                     }
-                    className="w-full rounded-md border border-border px-3 py-2"
-                  >
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </select>
+                    options={[
+                      { value: 'true', label: 'Yes' },
+                      { value: 'false', label: 'No' },
+                    ]}
+                  />
                 ) : (
                   <input
                     type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}

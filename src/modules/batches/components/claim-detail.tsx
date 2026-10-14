@@ -30,6 +30,7 @@ import {
   ValidationIssueModals,
   type ValidationModalName,
 } from './validation-issue-modals';
+import { AppSelect } from '@/components/forms';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -320,21 +321,18 @@ function SelectField({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
-        <option value="">Select</option>
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
+    <AppSelect
+      id={`claim-field-${label.replace(/\s+/g, '-').toLowerCase()}`}
+      label={label}
+      size="sm"
+      value={value || '__empty__'}
+      placeholder="Select"
+      onValueChange={(v) => onChange(v === '__empty__' ? '' : v)}
+      options={[
+        { value: '__empty__', label: 'Select' },
+        ...options,
+      ]}
+    />
   );
 }
 
@@ -1156,18 +1154,23 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                             />
                           </td>
                           <td className="px-1 py-1.5">
-                            <select
-                              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm"
-                              value={line.ndc_unit}
-                              onChange={(e) => updateLine(index, { ndc_unit: e.target.value })}
-                            >
-                              <option value="">—</option>
-                              {NDC_UNIT_OPTIONS.map((u) => (
-                                <option key={u} value={u}>
-                                  {u}
-                                </option>
-                              ))}
-                            </select>
+                            <AppSelect
+                              id={`line-${index}-ndc-unit`}
+                              size="sm"
+                              value={line.ndc_unit || '__empty__'}
+                              onValueChange={(v) =>
+                                updateLine(index, {
+                                  ndc_unit: v === '__empty__' ? '' : v,
+                                })
+                              }
+                              options={[
+                                { value: '__empty__', label: '—' },
+                                ...NDC_UNIT_OPTIONS.map((u) => ({
+                                  value: u,
+                                  label: u,
+                                })),
+                              ]}
+                            />
                           </td>
                           <td className="px-1 py-1.5">
                             <Input
@@ -1216,17 +1219,18 @@ export function ClaimDetail({ claimId, basePath }: ClaimDetailProps) {
                             />
                           </td>
                           <td className="px-1 py-1.5">
-                            <select
-                              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm"
-                              value={line.unit_scale}
-                              onChange={(e) => updateLine(index, { unit_scale: e.target.value })}
-                            >
-                              {UNIT_SCALE_OPTIONS.map((u) => (
-                                <option key={u} value={u}>
-                                  {u}
-                                </option>
-                              ))}
-                            </select>
+                            <AppSelect
+                              id={`line-${index}-unit-scale`}
+                              size="sm"
+                              value={line.unit_scale || UNIT_SCALE_OPTIONS[0]}
+                              onValueChange={(v) =>
+                                updateLine(index, { unit_scale: v })
+                              }
+                              options={UNIT_SCALE_OPTIONS.map((u) => ({
+                                value: u,
+                                label: u,
+                              }))}
+                            />
                           </td>
                           <td className="px-1 py-1.5">
                             <Input

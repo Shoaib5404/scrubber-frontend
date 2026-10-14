@@ -8,6 +8,7 @@
     "start": "next start --port 3010",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test:unit": "npx tsx --test src/lib/datetime/format.test.ts",
     "test:e2e": "playwright test",
     "openapi:types": "openapi-typescript ../scrubber-backend/docs/openapi/openapi.json -o src/types/api.d.ts"
   },
@@ -16,6 +17,7 @@
     "@tanstack/react-table": "^9.3.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "cn": "^0.4.0",
     "lucide-react": "^1.56.0",
     "next": "16.3.1",
@@ -40,6 +42,7 @@
     "eslint-config-next": "16.3.1",
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

@@ -9,7 +9,8 @@ test.describe('claims', () => {
     await page.getByLabel('Email').fill(customerEmail);
     await page.getByLabel('Password').fill(password);
     await page.getByRole('button', { name: 'Sign in' }).click();
-    await expect(page).toHaveURL(/\/portal/);
+    await expect(page).toHaveURL(/\/portal$/);
+    await page.goto('/portal/batches');
 
     await page.getByRole('link', { name: 'e2e-customer-own.edi' }).click({ timeout: 15_000 });
     await expect(page).toHaveURL(/\/portal\/batches\/\d+/, { timeout: 15_000 });

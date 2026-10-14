@@ -5,28 +5,28 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   BookOpenIcon,
   Building2Icon,
+  FilesIcon,
   FileStackIcon,
   KeyRoundIcon,
   LayoutDashboardIcon,
   LogOutIcon,
-  MoonIcon,
   ScrollTextIcon,
   SearchIcon,
   Settings2Icon,
   ShieldIcon,
-  SunIcon,
   UsersIcon,
   type LucideIcon,
 } from 'lucide-react';
-import { useTheme } from '@/components/theme/theme-provider';
 import {
   Permission,
   SubscriptionBanner,
   hasPermission,
   useAuthStore,
 } from '@/modules/auth';
+import { AppHeader } from '@/components/layout/app-header';
+import { PageHeader } from '@/components/layout/page-header';
+import { BrandLogo } from '@/components/brand';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +35,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Separator } from '@/components/ui/separator';
 import {
   Sidebar,
   SidebarContent,
@@ -50,15 +49,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-  SidebarTrigger,
 } from '@/components/ui/sidebar';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { BrandLogo } from '@/components/brand';
-import { PageHeader } from '@/components/layout/page-header';
 import { useDocumentTitle } from '@/hooks/use-document-title';
 import { cn } from '@/lib/utils';
 
@@ -104,7 +95,6 @@ export function AppShell({
   useDocumentTitle(title);
   const pathname = usePathname();
   const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const canManageUsers = hasPermission(user, Permission.UsersManage);
@@ -116,11 +106,17 @@ export function AppShell({
       ? [
           {
             href: '/dashboard',
-            label: 'Batches',
+            label: 'Dashboard',
             icon: LayoutDashboardIcon,
+            match: (p) => p === '/dashboard',
+          },
+          {
+            href: '/dashboard/batches',
+            label: 'Batches',
+            icon: FilesIcon,
             match: (p) =>
-              p === '/dashboard' ||
-              p.startsWith('/dashboard/batches') ||
+              p === '/dashboard/batches' ||
+              p.startsWith('/dashboard/batches/') ||
               p.startsWith('/dashboard/claims'),
           },
           {
@@ -132,11 +128,17 @@ export function AppShell({
       : [
           {
             href: '/portal',
-            label: 'Batches',
+            label: 'Dashboard',
             icon: LayoutDashboardIcon,
+            match: (p) => p === '/portal',
+          },
+          {
+            href: '/portal/batches',
+            label: 'Batches',
+            icon: FilesIcon,
             match: (p) =>
-              p === '/portal' ||
-              p.startsWith('/portal/batches') ||
+              p === '/portal/batches' ||
+              p.startsWith('/portal/batches/') ||
               p.startsWith('/portal/claims'),
           },
           {
@@ -148,7 +150,7 @@ export function AppShell({
             ? [
                 {
                   href: '/portal/members',
-                  label: 'Members',
+                  label: 'Team',
                   icon: UsersIcon,
                 } satisfies NavItem,
               ]
@@ -220,7 +222,7 @@ export function AppShell({
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" variant="inset">
+      <Sidebar collapsible="icon">
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -263,8 +265,8 @@ export function AppShell({
                     size="lg"
                     className="data-[state=open]:bg-sidebar-accent"
                   >
-                    <Avatar className="size-8 rounded-lg">
-                      <AvatarFallback className="rounded-lg bg-muted text-xs">
+                    <Avatar className="size-7 rounded-md">
+                      <AvatarFallback className="rounded-md bg-primary/10 text-[11px] font-semibold text-primary">
                         {initials(user?.name, user?.email)}
                       </AvatarFallback>
                     </Avatar>
@@ -297,7 +299,10 @@ export function AppShell({
                     <Link href="/profile">Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => void onLogout()}>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => void onLogout()}
+                  >
                     <LogOutIcon />
                     Sign out
                   </DropdownMenuItem>
@@ -310,50 +315,16 @@ export function AppShell({
       </Sidebar>
 
       <SidebarInset>
-        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border/80 bg-card/90 px-4 shadow-xs backdrop-blur-md supports-backdrop-filter:bg-card/75">
-          <SidebarTrigger className="-ml-1 cursor-pointer" />
-          <Separator orientation="vertical" className="mr-1 h-4" />
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <p className="truncate text-sm font-medium text-foreground">{title}</p>
-          </div>
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={toggleTheme}
-                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                >
-                  {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" asChild>
-                  <Link href="/profile" aria-label="Open profile">
-                    <Avatar className="size-7 ring-1 ring-border">
-                      <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
-                        {initials(user?.name, user?.email)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Profile</TooltipContent>
-            </Tooltip>
-          </div>
-        </header>
+        <AppHeader title={title} basePath={basePath} />
 
-        <div className="flex flex-1 flex-col gap-5 p-4 md:gap-6 md:p-6">
+        <div className="flex flex-1 flex-col gap-4 px-4 pt-4 pb-5 md:gap-5 md:px-6 md:pt-5 md:pb-6">
           <PageHeader title={title} description={description} actions={actions} />
           <SubscriptionBanner />
-          <div className={cn('mx-auto w-full max-w-[1400px] flex-1 animate-in fade-in-0 duration-200')}>
+          <div
+            className={cn(
+              'mx-auto w-full max-w-[1400px] flex-1 animate-in fade-in-0 duration-200',
+            )}
+          >
             {children}
           </div>
         </div>

@@ -13,6 +13,7 @@ import {
   withImpliedApiAccess,
   type TenantFeatureMeta,
 } from '@/modules/tenants-admin';
+import { AppSelect } from '@/components/forms';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -98,18 +99,17 @@ export default function NewTenantPage() {
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="tenant-subscription">Subscription</Label>
-              <select
-                id="tenant-subscription"
-                value={subscription}
-                onChange={(e) => setSubscription(e.target.value)}
-                className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
+            <AppSelect
+              id="tenant-subscription"
+              label="Subscription"
+              value={subscription}
+              size="sm"
+              onValueChange={setSubscription}
+              options={[
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' },
+              ]}
+            />
             <fieldset className="flex flex-col gap-2">
               <legend className="text-sm font-medium text-foreground">Features</legend>
               <p className="text-xs text-muted-foreground">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/modules/batches/components/app-shell';
 import { RequireAuth } from '@/modules/auth';
+import { sanitizeUploadLogError } from '@/lib/api/customer-facing-message';
 import { listUploadLogs, type UploadLogRow } from '@/modules/upload-logs/api';
 
 export default function PortalUploadLogsPage() {
@@ -40,7 +41,7 @@ export default function PortalUploadLogsPage() {
               <tr key={r.id} className="border-b border-border">
                 <td className="py-2 pr-3">{r.original_filename ?? '—'}</td>
                 <td className="py-2 pr-3">{r.status}</td>
-                <td className="py-2">{r.error_message ?? r.error_type ?? '—'}</td>
+                <td className="py-2">{sanitizeUploadLogError(r)}</td>
               </tr>
             ))}
           </tbody>

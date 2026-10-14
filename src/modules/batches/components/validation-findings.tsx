@@ -4,16 +4,10 @@ import { useMemo, useState } from 'react';
 import { AlertTriangleIcon, InfoIcon, XCircleIcon } from 'lucide-react';
 import type { ValidationIssue } from '../types';
 import type { ValidationModalName } from './validation-issue-modals';
+import { AppSelect } from '@/components/forms';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 type SeverityFilter = 'all' | 'error' | 'warning' | 'info';
@@ -45,20 +39,20 @@ export function ValidationFindings({ issues, onOpenHelp }: ValidationFindingsPro
         <CardTitle className="text-base">
           Validation findings ({issues.length})
         </CardTitle>
-        <Select
+        <AppSelect
+          id="validation-severity-filter"
           value={filter}
-          onValueChange={(value) => setFilter((value as SeverityFilter) ?? 'all')}
-        >
-          <SelectTrigger className="w-[140px]" aria-label="Filter by severity">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="error">Errors</SelectItem>
-            <SelectItem value="warning">Warnings</SelectItem>
-            <SelectItem value="info">Info</SelectItem>
-          </SelectContent>
-        </Select>
+          triggerClassName="w-[140px]"
+          onValueChange={(value) =>
+            setFilter((value as SeverityFilter) || 'all')
+          }
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'error', label: 'Errors' },
+            { value: 'warning', label: 'Warnings' },
+            { value: 'info', label: 'Info' },
+          ]}
+        />
       </CardHeader>
       <CardContent>
         {filtered.length === 0 ? (

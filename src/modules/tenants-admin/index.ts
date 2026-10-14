@@ -1,6 +1,7 @@
 export {
   listTenants,
   getTenant,
+  getTenantOverview,
   getTenantFeatureCatalog,
   createTenant,
   updateTenant,

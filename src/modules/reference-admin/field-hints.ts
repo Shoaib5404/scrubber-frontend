@@ -1,3 +1,8 @@
+import {
+  formatSmartDate,
+  formatSmartDateTime,
+} from '@/lib/datetime/format';
+
 export type FieldInputType = 'text' | 'textarea' | 'number' | 'boolean' | 'date';
 
 export type FieldHint = {
@@ -80,9 +85,17 @@ export function columnKeysFromItems(items: Record<string, unknown>[]): string[] 
   return ordered;
 }
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/;
+
 export function formatCellValue(value: unknown): string {
   if (value === null || value === undefined) return '—';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'object') return JSON.stringify(value);
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (DATE_ONLY.test(trimmed)) return formatSmartDate(trimmed);
+    if (ISO_DATETIME.test(trimmed)) return formatSmartDateTime(trimmed);
+  }
   return String(value);
 }

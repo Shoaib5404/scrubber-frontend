@@ -3,9 +3,9 @@
 import { FormEvent, useId, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { UploadIcon, Loader2Icon } from 'lucide-react';
+import { sanitizeCustomerFacingMessage } from '@/lib/api/customer-facing-message';
 import { uploadBatch } from '../api';
 import { friendlyError } from './async-state';
-import { pipelineStage, pipelineStageLabel } from '../types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,10 +21,6 @@ type UploadPhase = 'idle' | 'authorizing' | 'uploading' | 'finalizing';
 /** Match Laravel neo-scrubber: 10MB (`SCRUBBER_MAX_FILE_SIZE`). */
 const EDI_MAX_CLIENT_BYTES = 10_485_760;
 
-/**
- * Presign → PUT MinIO → complete (TeleWound-aligned).
- * Nest validates/parses only after the object is confirmed in storage.
- */
 export function BatchUpload({ onUploaded }: BatchUploadProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -71,20 +67,16 @@ export function BatchUpload({ onUploaded }: BatchUploadProps) {
         }
       });
       setPhase('finalizing');
-      const stage = pipelineStage(result.status);
       let message: string;
       if (result.validation_warning) {
-        message =
-          `Upload complete — EDI syntax ${result.edi_syntax}. ${result.total_claims} claim(s) parsed, ` +
-          `but validation did not start: ${result.validation_warning}`;
+        message = sanitizeCustomerFacingMessage(
+          `Upload complete. ${result.total_claims} claim(s) parsed, but validation did not start: ${result.validation_warning}`,
+          `Upload complete. ${result.total_claims} claim(s) parsed, but validation could not be started. Please contact support.`,
+        );
       } else if (result.validation_queued) {
-        message =
-          `Upload complete — EDI syntax ${result.edi_syntax}. ${result.total_claims} claim(s) parsed. ` +
-          `Rule validation is queued (stage: ${pipelineStageLabel(stage)}).`;
+        message = `Upload complete. ${result.total_claims} claim(s) parsed. Rule validation is running.`;
       } else {
-        message =
-          `Upload complete — EDI syntax ${result.edi_syntax}. ${result.total_claims} claim(s) parsed ` +
-          `and rule validation is complete (stage: ${pipelineStageLabel(stage)}).`;
+        message = `Upload complete. ${result.total_claims} claim(s) parsed and rule validation is complete.`;
       }
       setSuccess(message);
       toast.success('EDI file uploaded');
@@ -103,13 +95,13 @@ export function BatchUpload({ onUploaded }: BatchUploadProps) {
 
   const buttonLabel =
     phase === 'authorizing'
-      ? 'Authorizing…'
+      ? 'Preparing…'
       : phase === 'uploading'
         ? progress != null
           ? `Uploading ${progress}%…`
           : 'Uploading…'
         : phase === 'finalizing'
-          ? 'Finalizing…'
+          ? 'Finishing…'
           : 'Upload';
 
   return (
@@ -117,8 +109,8 @@ export function BatchUpload({ onUploaded }: BatchUploadProps) {
       <CardHeader>
         <CardTitle className="text-base">Upload EDI file</CardTitle>
         <CardDescription>
-          Accepts .edi or .txt up to 10 MB. Upload authorizes storage, then structural check and
-          rule validation run on the server.
+          Accepts .edi or .txt up to 10 MB. After upload, the file is checked and rule validation
+          runs automatically.
         </CardDescription>
       </CardHeader>
       <CardContent>

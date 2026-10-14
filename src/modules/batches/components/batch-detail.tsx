@@ -10,6 +10,7 @@ import {
 } from '@tanstack/react-table/legacy';
 import { FileCode2Icon, Loader2Icon, RefreshCwIcon } from 'lucide-react';
 import { canUploadOrValidate, useAuthStore } from '@/modules/auth';
+import { sanitizeCustomerFacingMessage } from '@/lib/api/customer-facing-message';
 import { getBatch, getBatchStatus, listBatchClaims, validateBatch } from '../api';
 import {
   isBatchStatusPollable,
@@ -149,9 +150,19 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
       const { httpStatus, body } = await validateBatch(batchId, force);
       if (httpStatus === 202 || body.data.status === 'under_processing') {
         reloadClaimsAfterTerminal.current = true;
-        setActionMsg(body.message ?? 'Validation queued. Status will update automatically.');
+        setActionMsg(
+          sanitizeCustomerFacingMessage(
+            body.message,
+            'Validation queued. Status will update automatically.',
+          ),
+        );
       } else {
-        setActionMsg(body.message ?? `Validation status: ${body.data.status}`);
+        setActionMsg(
+          sanitizeCustomerFacingMessage(
+            body.message,
+            `Validation status: ${body.data.status}`,
+          ),
+        );
       }
       await load({ quiet: true });
     } catch (err) {

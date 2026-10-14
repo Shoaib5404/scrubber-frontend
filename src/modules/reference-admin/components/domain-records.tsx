@@ -11,14 +11,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AppSelect } from '@/components/forms';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -350,25 +344,21 @@ export function DomainRecords({ domainSlug }: DomainRecordsProps) {
               </div>
             </div>
             <div className="w-full space-y-1.5 sm:w-[160px]">
-              <Label htmlFor="reference-active-filter" className="text-muted-foreground">
-                Active
-              </Label>
-              <Select
+              <AppSelect
+                id="reference-active-filter"
+                label="Active"
                 value={isActiveFilter}
+                triggerClassName="w-full"
                 onValueChange={(value) => {
-                  setIsActiveFilter(value ?? 'all');
+                  setIsActiveFilter(value || 'all');
                   setPage(1);
                 }}
-              >
-                <SelectTrigger id="reference-active-filter" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="true">Active</SelectItem>
-                  <SelectItem value="false">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'true', label: 'Active' },
+                  { value: 'false', label: 'Inactive' },
+                ]}
+              />
             </div>
             <Button type="submit" variant="secondary" size="sm" className="sm:mb-0.5">
               Apply

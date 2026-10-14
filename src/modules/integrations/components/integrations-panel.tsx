@@ -15,17 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/layout/confirm-dialog';
-
-function formatLastUsed(iso: string | null): string {
-  if (!iso) {
-    return 'Never';
-  }
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return 'Never';
-  }
-  return date.toLocaleString();
-}
+import { SmartTime } from '@/components/ui/smart-time';
 
 export function IntegrationsPanel() {
   const [client, setClient] = useState<IntegrationApiClient | null>(null);
@@ -191,7 +181,8 @@ export function IntegrationsPanel() {
             <div>
               <CardTitle className="text-base">API credentials</CardTitle>
               <CardDescription>
-                Last used: {formatLastUsed(client.last_used_at)}
+                Last used:{' '}
+                <SmartTime value={client.last_used_at} empty="Never" />
               </CardDescription>
             </div>
             {client.is_active ? (

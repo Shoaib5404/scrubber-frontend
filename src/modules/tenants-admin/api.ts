@@ -1,4 +1,6 @@
 import { apiRequest } from '@/lib/api';
+import type { PeriodFilterValue, TenantOverview } from '@/modules/team';
+import { buildPeriodQuery } from '@/modules/team';
 
 type ApiSuccess<T> = { success: boolean; message?: string; data: T };
 
@@ -73,6 +75,18 @@ export async function getTenantFeatureCatalog(): Promise<TenantFeatureMeta[]> {
 
 export async function getTenant(id: number): Promise<AdminTenant> {
   const res = await apiRequest<ApiSuccess<AdminTenant>>('GET', `/admin/tenants/${id}`);
+  return res.data;
+}
+
+export async function getTenantOverview(
+  id: number,
+  filter: PeriodFilterValue = { period: '1m' },
+): Promise<TenantOverview> {
+  const qs = buildPeriodQuery(filter);
+  const res = await apiRequest<ApiSuccess<TenantOverview>>(
+    'GET',
+    `/admin/tenants/${id}/overview?${qs.toString()}`,
+  );
   return res.data;
 }
 

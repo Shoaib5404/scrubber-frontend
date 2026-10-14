@@ -16,6 +16,7 @@ import {
   type UpsertUserInput,
   type UsersFormMeta,
 } from '../api';
+import { AppSelect } from '@/components/forms';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -272,22 +273,23 @@ export function UserForm({ mode, user }: UserFormProps) {
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="user-role">
-            Role <span className="text-destructive">*</span>
-          </Label>
-          <select
-            id="user-role"
-            className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            {...register('role')}
-          >
-            {roleOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Controller
+          control={control}
+          name="role"
+          render={({ field }) => (
+            <AppSelect
+              id="user-role"
+              label="Role"
+              required
+              size="sm"
+              value={field.value}
+              onValueChange={field.onChange}
+              options={roleOptions}
+              invalid={Boolean(errors.role)}
+              errorMessage={errors.role?.message}
+            />
+          )}
+        />
 
         <div className="flex items-end pb-1">
           <Controller
@@ -313,37 +315,38 @@ export function UserForm({ mode, user }: UserFormProps) {
         <section className="flex flex-col gap-4 border-t border-border pt-6">
           <h3 className="text-sm font-semibold text-foreground">Subscription</h3>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-plan">Plan</Label>
-              <select
-                id="user-plan"
-                className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
-                {...register('plan')}
-              >
-                <option value="">None</option>
-                {meta.plans.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-status">
-                Status <span className="text-destructive">*</span>
-              </Label>
-              <select
-                id="user-status"
-                className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
-                {...register('subscriptionStatus')}
-              >
-                {meta.subscription_statuses.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Controller
+              control={control}
+              name="plan"
+              render={({ field }) => (
+                <AppSelect
+                  id="user-plan"
+                  label="Plan"
+                  size="sm"
+                  value={field.value || '__none__'}
+                  onValueChange={(v) => field.onChange(v === '__none__' ? '' : v)}
+                  options={[
+                    { value: '__none__', label: 'None' },
+                    ...meta.plans,
+                  ]}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="subscriptionStatus"
+              render={({ field }) => (
+                <AppSelect
+                  id="user-status"
+                  label="Status"
+                  required
+                  size="sm"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  options={meta.subscription_statuses}
+                />
+              )}
+            />
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="user-starts">Starts at</Label>
               <Input id="user-starts" type="date" {...register('startsAt')} />

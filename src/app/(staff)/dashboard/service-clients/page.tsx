@@ -15,6 +15,7 @@ import {
   type ServiceClientScopeMeta,
 } from '@/modules/service-clients-admin';
 import { PaginationControls } from '@/components/layout/pagination-controls';
+import { SmartTime } from '@/components/ui/smart-time';
 
 const DEFAULT_SCOPES = ['reference:read'];
 
@@ -103,9 +104,9 @@ export default function ServiceClientsPage() {
   return (
     <AppShell title="Service clients" basePath="/dashboard">
       <p className="mb-4 text-sm text-muted-foreground">
-        Platform credentials for NeoMD own apps (e.g. TeleWound). Unbound from customer
-        tenants — use <code className="text-xs">POST /api/v1/auth/token</code> then call
-        APIs with the Bearer token. Customer orgs use Tenants + portal Integrations instead.
+        Platform credentials for NeoMD own apps (e.g. TeleWound). These clients are not tied
+        to a customer tenant. Customer organizations manage their own credentials under
+        Tenants and portal Integrations.
       </p>
 
       {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
@@ -202,7 +203,7 @@ export default function ServiceClientsPage() {
                 </td>
                 <td className="px-4 py-3">{c.is_active ? 'Yes' : 'No'}</td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {c.last_used_at ? new Date(c.last_used_at).toLocaleString() : 'Never'}
+                  <SmartTime value={c.last_used_at} empty="Never" />
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex flex-wrap justify-end gap-2">
@@ -279,10 +280,6 @@ export default function ServiceClientsPage() {
       />
 
       <p className="mt-6 text-xs text-muted-foreground">
-        CLI alternative:{' '}
-        <code>npx nest-commander reference-api:issue &quot;My App&quot;</code>
-      </p>
-      <p className="mt-1 text-xs text-muted-foreground">
         <Link href="/dashboard/tenants" className="underline">
           Customer tenants
         </Link>{' '}

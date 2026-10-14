@@ -56,12 +56,8 @@ export function DomainList() {
           Reference domains
         </h2>
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          One shared admin for all Nest reference tables — not a separate page per domain route.
-          Use Import/Export where shown; other bulk loads stay on Nest CLI (
-          <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
-            npm run cli -- …:import
-          </code>
-          ).
+          One shared admin for all reference tables. Use Import/Export where shown; other bulk
+          loads are handled by ops tooling outside this screen.
         </p>
       </div>
 

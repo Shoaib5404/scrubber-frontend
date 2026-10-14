@@ -16,6 +16,9 @@ export type BatchSummary = {
   original_filename: string;
   status: string;
   uploaded_by: number | null;
+  tenant_id?: number | null;
+  tenant_name?: string | null;
+  tenant_slug?: string | null;
   isa_sender_id?: string | null;
   isa_receiver_id?: string | null;
   isa_control_number?: string | null;

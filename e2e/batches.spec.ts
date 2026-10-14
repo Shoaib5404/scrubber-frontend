@@ -12,9 +12,22 @@ async function login(page: import('@playwright/test').Page, email: string) {
 }
 
 test.describe('batches', () => {
+  test('customer dashboard and batches are separate routes', async ({ page }) => {
+    await login(page, customerEmail);
+    await expect(page).toHaveURL(/\/portal$/);
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByTestId('customer-dashboard')).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await page.getByRole('link', { name: 'Batches', exact: true }).click();
+    await expect(page).toHaveURL(/\/portal\/batches/);
+    await expect(page.getByRole('heading', { name: 'Batches' })).toBeVisible();
+  });
+
   test('customer sees only own batches and can open detail', async ({ page }) => {
     await login(page, customerEmail);
-    await expect(page).toHaveURL(/\/portal/);
+    await page.goto('/portal/batches');
     await expect(page.getByRole('heading', { name: 'Batches' })).toBeVisible();
 
     await expect(page.getByTestId('batch-pagination')).toBeVisible({ timeout: 15_000 });
@@ -28,9 +41,22 @@ test.describe('batches', () => {
     await expect(page.getByTestId('claim-pagination')).toBeVisible();
   });
 
-  test('staff can see customer-owned batch on dashboard', async ({ page }) => {
+  test('staff dashboard and batches are separate routes', async ({ page }) => {
     await login(page, adminEmail);
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByTestId('staff-dashboard')).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await page.getByRole('link', { name: 'Batches', exact: true }).click();
+    await expect(page).toHaveURL(/\/dashboard\/batches/);
+    await expect(page.getByRole('heading', { name: 'Batches' })).toBeVisible();
+  });
+
+  test('staff can see customer-owned batch on batches page', async ({ page }) => {
+    await login(page, adminEmail);
+    await page.goto('/dashboard/batches');
     await expect(page.getByRole('heading', { name: 'Batches' })).toBeVisible();
 
     const ownLink = page.getByRole('link', { name: 'e2e-customer-own.edi' });
@@ -42,6 +68,7 @@ test.describe('batches', () => {
 
   test('batch list shows server-side pagination metadata', async ({ page }) => {
     await login(page, customerEmail);
+    await page.goto('/portal/batches');
     await expect(page.getByTestId('batch-pagination')).toContainText(/Page \d+ of \d+/);
   });
 });
