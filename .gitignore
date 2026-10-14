@@ -48,3 +48,7 @@ next-env.d.ts
 
 # docs
 docs/
+
+# local agent / design tooling (do not commit)
+.agents/
+.superdesign/

@@ -101,7 +101,7 @@ export function VerifyEmailPanel() {
   const alreadyVerified = !!user?.email_verified;
 
   return (
-    <div className="mt-8 space-y-5">
+    <div className="space-y-5">
       {verifying ? (
         <p role="status" className="text-sm text-muted-foreground">
           Verifying your email…

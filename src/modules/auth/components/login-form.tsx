@@ -48,27 +48,33 @@ export function LoginForm() {
   }
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+    <form className="flex flex-col gap-6" onSubmit={onSubmit} noValidate>
       <div className="flex flex-col gap-2">
-        <Label htmlFor={emailId}>Email</Label>
+        <Label htmlFor={emailId} className="text-[13px]">
+          Email
+        </Label>
         <Input
           id={emailId}
           name="email"
           type="email"
           autoComplete="username"
           required
+          placeholder="name@company.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
+          className="h-10"
         />
       </div>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
-          <Label htmlFor={passwordId}>Password</Label>
+          <Label htmlFor={passwordId} className="text-[13px]">
+            Password
+          </Label>
           <Link
             href="/forgot-password"
-            className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            className="text-[12px] font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
           >
             Forgot password?
           </Link>
@@ -83,6 +89,7 @@ export function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
+          className="h-10"
         />
       </div>
 
@@ -106,7 +113,7 @@ export function LoginForm() {
         </Alert>
       ) : null}
 
-      <Button type="submit" disabled={loading} className="w-full">
+      <Button type="submit" disabled={loading} size="lg" className="w-full">
         {loading ? (
           <>
             <Loader2Icon data-icon="inline-start" className="animate-spin" />

@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 import { Slot } from "radix-ui"
 
-import { useIsMobile } from "@/hooks/use-mobile"
+import { isMobileViewport, useIsMobile } from "@/hooks/use-mobile"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
@@ -88,8 +88,15 @@ function SidebarProvider({
   )
 
   // Helper to toggle the sidebar.
+  // Prefer a live viewport check so a stale isMobile=false (before layout
+  // effect, or after a resize without a re-render) still opens the mobile sheet
+  // instead of flipping the CSS-hidden desktop sidebar.
   const toggleSidebar = React.useCallback(() => {
-    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
+    if (isMobile || isMobileViewport()) {
+      setOpenMobile((open) => !open)
+      return
+    }
+    setOpen((open) => !open)
   }, [isMobile, setOpen, setOpenMobile])
 
   // Adds a keyboard shortcut to toggle the sidebar.
@@ -178,15 +185,21 @@ function Sidebar({
     )
   }
 
-  if (isMobile) {
+  // Render the sheet when the viewport is mobile OR when openMobile was set
+  // while isMobile was still stale — otherwise the trigger updates state that
+  // nothing mounts and the nav never appears.
+  if (isMobile || openMobile) {
     return (
-      <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+      <Sheet open={openMobile} onOpenChange={setOpenMobile}>
         <SheetContent
           dir={dir}
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+          className={cn(
+            "w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
+            className
+          )}
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -198,7 +211,9 @@ function Sidebar({
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
+          <div className="flex h-full w-full flex-col" {...props}>
+            {children}
+          </div>
         </SheetContent>
       </Sheet>
     )

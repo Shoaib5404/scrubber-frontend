@@ -8,6 +8,7 @@ export { AcceptInviteForm } from './components/accept-invite-form';
 export { acceptInviteRequest } from './api';
 export { VerifyEmailPanel } from './components/verify-email-panel';
 export { ConfirmPasswordForm } from './components/confirm-password-form';
+export { AuthSplitShell, AuthPanel } from './components/auth-split-shell';
 export { ProfilePage } from './components/profile-page';
 export {
   loginRequest,

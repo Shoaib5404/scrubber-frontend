@@ -32,6 +32,7 @@ export function StaffDashboard() {
   const canView = hasPermission(user, Permission.DashboardView);
   const canManageTenants = hasPermission(user, Permission.TenantsManage);
   const canManageUsers = hasPermission(user, Permission.UsersManage);
+  const canViewAudit = hasPermission(user, Permission.AuditView);
 
   const [periodFilter, setPeriodFilter] = useState<PeriodFilterValue>({
     period: '1m',
@@ -106,6 +107,9 @@ export function StaffDashboard() {
     { href: '/dashboard/batches', label: 'View batches' },
     { href: '/dashboard/batches?status=error', label: 'Failed batches' },
     { href: '/dashboard/upload-logs', label: 'Upload logs' },
+    ...(canViewAudit
+      ? [{ href: '/dashboard/audit-logs', label: 'Audit logs' }]
+      : []),
     ...(canManageTenants
       ? [{ href: '/dashboard/tenants', label: 'Manage tenants' }]
       : []),

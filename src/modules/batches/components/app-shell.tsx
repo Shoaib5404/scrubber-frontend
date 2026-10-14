@@ -7,8 +7,10 @@ import {
   Building2Icon,
   FilesIcon,
   FileStackIcon,
+  InboxIcon,
   KeyRoundIcon,
   LayoutDashboardIcon,
+  LifeBuoyIcon,
   LogOutIcon,
   ScrollTextIcon,
   SearchIcon,
@@ -99,6 +101,8 @@ export function AppShell({
   const logout = useAuthStore((s) => s.logout);
   const canManageUsers = hasPermission(user, Permission.UsersManage);
   const canManageTenants = hasPermission(user, Permission.TenantsManage);
+  const canViewAudit = hasPermission(user, Permission.AuditView);
+  const canViewInquiries = hasPermission(user, Permission.InquiriesView);
   const isSuperAdmin = user?.role === 'super_admin';
 
   const workspaceItems: NavItem[] =
@@ -124,6 +128,15 @@ export function AppShell({
             label: 'Upload logs',
             icon: ScrollTextIcon,
           },
+          ...(canViewAudit
+            ? [
+                {
+                  href: '/dashboard/audit-logs',
+                  label: 'Audit logs',
+                  icon: ScrollTextIcon,
+                } satisfies NavItem,
+              ]
+            : []),
         ]
       : [
           {
@@ -146,6 +159,11 @@ export function AppShell({
             label: 'Upload logs',
             icon: ScrollTextIcon,
           },
+          {
+            href: '/portal/audit-logs',
+            label: 'Audit logs',
+            icon: ScrollTextIcon,
+          },
           ...(user?.role === 'tenant_admin'
             ? [
                 {
@@ -159,6 +177,11 @@ export function AppShell({
             href: '/portal/integrations',
             label: 'Integrations',
             icon: Settings2Icon,
+          },
+          {
+            href: '/portal/support',
+            label: 'Support',
+            icon: LifeBuoyIcon,
           },
         ];
 
@@ -185,6 +208,15 @@ export function AppShell({
 
   const adminItems: NavItem[] = [];
   if (basePath === '/dashboard') {
+    if (canViewInquiries) {
+      adminItems.push({
+        href: '/dashboard/inquiries',
+        label: 'Inquiries',
+        icon: InboxIcon,
+        match: (p) =>
+          p === '/dashboard/inquiries' || p.startsWith('/dashboard/inquiries/'),
+      });
+    }
     if (canManageTenants) {
       adminItems.push({
         href: '/dashboard/tenants',
@@ -207,11 +239,18 @@ export function AppShell({
       );
     }
     if (isSuperAdmin) {
-      adminItems.push({
-        href: '/dashboard/permissions',
-        label: 'Permissions',
-        icon: ShieldIcon,
-      });
+      adminItems.push(
+        {
+          href: '/dashboard/permissions',
+          label: 'Permissions',
+          icon: ShieldIcon,
+        },
+        {
+          href: '/dashboard/audit-settings',
+          label: 'Audit settings',
+          icon: Settings2Icon,
+        },
+      );
     }
   }
 

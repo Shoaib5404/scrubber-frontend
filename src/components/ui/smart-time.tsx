@@ -8,6 +8,11 @@ import {
   formatSmartDateTime,
   parseDisplayDate,
 } from '@/lib/datetime/format';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export type SmartTimeProps = {
   value: string | Date | null | undefined;
@@ -16,6 +21,8 @@ export type SmartTimeProps = {
   className?: string;
   /** Live tick interval; default 60_000 when datetime age < 24h, else 0. */
   refreshMs?: number;
+  /** Show absolute datetime in the shared app tooltip (theme-toggle style). */
+  showTooltip?: boolean;
 };
 
 function resolveRefreshMs(
@@ -48,6 +55,7 @@ export function SmartTime({
   empty = '—',
   className,
   refreshMs,
+  showTooltip = true,
 }: SmartTimeProps) {
   const [now, setNow] = useState(() => new Date());
 
@@ -78,14 +86,28 @@ export function SmartTime({
   }
 
   const absolute = formatAbsoluteDateTime(value);
-
-  return (
+  const timeEl = (
     <time
       dateTime={toDateTimeAttr(value)}
-      title={absolute === '—' ? undefined : absolute}
-      className={cn(className)}
+      className={cn(showTooltip ? 'cursor-default' : undefined, className)}
     >
       {label}
     </time>
+  );
+
+  if (!showTooltip || absolute === '—' || absolute === label) {
+    return timeEl;
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{timeEl}</TooltipTrigger>
+      <TooltipContent
+        sideOffset={4}
+        className="gap-1 rounded px-2 py-1 text-[10px] leading-tight tracking-tight"
+      >
+        {absolute}
+      </TooltipContent>
+    </Tooltip>
   );
 }

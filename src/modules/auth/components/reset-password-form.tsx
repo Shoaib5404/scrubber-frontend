@@ -62,7 +62,7 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <form className="mt-6 flex flex-col gap-4" onSubmit={onSubmit} noValidate>
+    <form className="flex flex-col gap-6" onSubmit={onSubmit} noValidate>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={emailId}>Email</Label>
         <Input
@@ -110,14 +110,14 @@ export function ResetPasswordForm() {
         </Alert>
       ) : null}
 
-      <Button type="submit" disabled={loading} className="w-full">
+      <Button type="submit" disabled={loading} size="lg" className="w-full">
         {loading ? (
           <>
             <Loader2Icon data-icon="inline-start" className="animate-spin" />
             Resetting…
           </>
         ) : (
-          'Reset password'
+          'Update password'
         )}
       </Button>
 

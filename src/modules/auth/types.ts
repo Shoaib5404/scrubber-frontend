@@ -48,6 +48,8 @@ export const Permission = {
   ArticlesManage: 'articles.manage',
   UsersManage: 'users.manage',
   TenantsManage: 'tenants.manage',
+  AuditView: 'audit.view',
+  InquiriesView: 'inquiries.view',
 } as const;
 
 export function hasPermission(

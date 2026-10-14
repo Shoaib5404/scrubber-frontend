@@ -1,0 +1,33 @@
+/* Scoped marketing motion — does not affect authenticated app shells. */
+
+@keyframes landing-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-reveal,
+.landing-reveal-delay {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-reveal {
+    animation: landing-reveal 0.55s ease-out both;
+  }
+
+  .landing-reveal-delay {
+    animation: landing-reveal 0.55s ease-out 0.12s both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-workflow .animate-spin {
+    animation: none;
+  }
+}

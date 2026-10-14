@@ -9,6 +9,8 @@ const SEGMENT_LABELS: Record<string, string> = {
   batches: 'Batches',
   claims: 'Claims',
   'upload-logs': 'Upload logs',
+  'audit-logs': 'Audit logs',
+  'audit-settings': 'Audit settings',
   references: 'References',
   users: 'Users',
   tenants: 'Tenants',
