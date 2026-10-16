@@ -23,6 +23,13 @@ export type ApiErrorPayload = {
   data?: unknown;
 };
 
+/** One structural finding from a rejected EDI upload (422, edi_syntax invalid). */
+export type EdiStructuralIssue = {
+  rule: string;
+  severity: string;
+  message: string;
+};
+
 export type NormalizedApiError = {
   statusCode?: number;
   code?: string;
@@ -32,6 +39,11 @@ export type NormalizedApiError = {
   retryable: boolean;
   /** Raw candidate before sanitization (for deactivated-account detection). */
   rawMessage?: string;
+  /**
+   * Present only for an EDI structural rejection envelope.
+   * Other 422s leave this unset so existing screens keep a single message.
+   */
+  ediStructuralIssues?: EdiStructuralIssue[];
 };
 
 const SAFE_MESSAGES = {
@@ -176,6 +188,48 @@ function extractCandidateMessage(payload: ApiErrorPayload, fallback: string): st
   return fallback;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function mapStructuralIssue(value: unknown): EdiStructuralIssue | null {
+  const record = asRecord(value);
+  if (!record) return null;
+  const message = typeof record.message === 'string' ? record.message.trim() : '';
+  if (!message) return null;
+  const ruleSource = record.rule ?? record.rule_id;
+  const rule = typeof ruleSource === 'string' ? ruleSource.trim() : '';
+  const severity = typeof record.severity === 'string' ? record.severity.trim() : 'error';
+  return { rule, severity: severity || 'error', message };
+}
+
+/**
+ * Read the structural issue list only from the EDI upload 422 envelope.
+ * Returns undefined for every other error so callers that ignore this field are unchanged.
+ */
+export function extractEdiStructuralIssues(
+  payload: ApiErrorPayload,
+  status?: number,
+): EdiStructuralIssue[] | undefined {
+  if (status !== 422 || payload.success !== false) return undefined;
+  const data = asRecord(payload.data);
+  if (!data || data.edi_syntax !== 'invalid') return undefined;
+
+  const raw = data.edi_validation_errors;
+  const list = Array.isArray(raw)
+    ? raw
+    : Array.isArray(asRecord(raw)?.issues)
+      ? (asRecord(raw)?.issues as unknown[])
+      : null;
+  if (!list) return undefined;
+
+  const issues = list
+    .map(mapStructuralIssue)
+    .filter((issue): issue is EdiStructuralIssue => issue !== null);
+  return issues.length > 0 ? issues : undefined;
+}
+
 function normalizeFieldErrors(
   errors: ApiErrorPayload['errors'],
 ): Record<string, string[]> | undefined {
@@ -231,6 +285,7 @@ export function normalizeApiErrorPayload(
       typeof payload.requestId === 'string' ? payload.requestId : undefined,
     retryable: isRetryable(status, code),
     rawMessage,
+    ediStructuralIssues: extractEdiStructuralIssues(payload, status),
   };
 }
 
@@ -243,6 +298,8 @@ export class ApiClientError extends Error {
   readonly retryable: boolean;
   /** Unsanitized server candidate — used for deactivated-account detection. */
   readonly rawMessage?: string;
+  /** EDI structural findings. Set only for that 422 envelope. */
+  readonly ediStructuralIssues?: EdiStructuralIssue[];
 
   constructor(
     message: string,
@@ -254,6 +311,7 @@ export class ApiClientError extends Error {
       requestId?: string;
       retryable?: boolean;
       rawMessage?: string;
+      ediStructuralIssues?: EdiStructuralIssue[];
     },
   ) {
     super(message);
@@ -265,6 +323,7 @@ export class ApiClientError extends Error {
     this.requestId = extras?.requestId;
     this.retryable = extras?.retryable ?? false;
     this.rawMessage = extras?.rawMessage;
+    this.ediStructuralIssues = extras?.ediStructuralIssues;
   }
 
   static fromNormalized(normalized: NormalizedApiError): ApiClientError {
@@ -278,6 +337,7 @@ export class ApiClientError extends Error {
         requestId: normalized.requestId,
         retryable: normalized.retryable,
         rawMessage: normalized.rawMessage,
+        ediStructuralIssues: normalized.ediStructuralIssues,
       },
     );
   }

@@ -4,6 +4,7 @@ import { FormEvent, useId, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { UploadIcon, Loader2Icon } from 'lucide-react';
 import { sanitizeCustomerFacingMessage } from '@/lib/api/customer-facing-message';
+import { ApiClientError, type EdiStructuralIssue } from '@/lib/api/errors';
 import { uploadBatch } from '../api';
 import { friendlyError } from './async-state';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -28,6 +29,7 @@ export function BatchUpload({ onUploaded }: BatchUploadProps) {
   const [phase, setPhase] = useState<UploadPhase>('idle');
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [structuralIssues, setStructuralIssues] = useState<EdiStructuralIssue[] | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -36,6 +38,7 @@ export function BatchUpload({ onUploaded }: BatchUploadProps) {
   function acceptFile(next: File | null) {
     setFile(next);
     setError(null);
+    setStructuralIssues(null);
     setSuccess(null);
   }
 
@@ -43,20 +46,24 @@ export function BatchUpload({ onUploaded }: BatchUploadProps) {
     event.preventDefault();
     if (!file) {
       setError('Choose an EDI file to upload.');
+      setStructuralIssues(null);
       return;
     }
     if (file.size <= 0) {
       setError('The selected file is empty.');
+      setStructuralIssues(null);
       return;
     }
     if (file.size > EDI_MAX_CLIENT_BYTES) {
       setError(`EDI file exceeds the maximum size of 10 MB.`);
+      setStructuralIssues(null);
       return;
     }
 
     setPhase('authorizing');
     setProgress(null);
     setError(null);
+    setStructuralIssues(null);
     setSuccess(null);
     try {
       setPhase('uploading');
@@ -86,6 +93,9 @@ export function BatchUpload({ onUploaded }: BatchUploadProps) {
     } catch (err) {
       const message = friendlyError(err);
       setError(message);
+      setStructuralIssues(
+        err instanceof ApiClientError ? err.ediStructuralIssues ?? null : null,
+      );
       toast.error(message);
     } finally {
       setPhase('idle');
@@ -189,6 +199,9 @@ export function BatchUpload({ onUploaded }: BatchUploadProps) {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
+          {structuralIssues && structuralIssues.length > 0 ? (
+            <StructuralIssueList issues={structuralIssues} />
+          ) : null}
           {success ? (
             <Alert data-testid="upload-success">
               <AlertDescription>{success}</AlertDescription>
@@ -197,5 +210,41 @@ export function BatchUpload({ onUploaded }: BatchUploadProps) {
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+function StructuralIssueList({ issues }: { issues: EdiStructuralIssue[] }) {
+  const errorCount = issues.filter((issue) => issue.severity !== 'warning').length;
+  const warningCount = issues.length - errorCount;
+
+  return (
+    <div
+      className="overflow-hidden rounded-lg border border-destructive/30"
+      data-testid="edi-structural-issues"
+    >
+      <div className="bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive">
+        EDI structural issues ({errorCount} errors, {warningCount} warnings)
+      </div>
+      <ul className="max-h-64 divide-y overflow-y-auto text-sm">
+        {issues.map((issue, index) => {
+          const warning = issue.severity === 'warning';
+          return (
+            <li
+              key={`${issue.rule}-${index}`}
+              className={
+                warning
+                  ? 'bg-amber-50 px-4 py-2 text-amber-950'
+                  : 'px-4 py-2 text-destructive'
+              }
+            >
+              {issue.rule ? (
+                <span className="mr-2 font-mono text-xs">{issue.rule}</span>
+              ) : null}
+              {issue.message}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
