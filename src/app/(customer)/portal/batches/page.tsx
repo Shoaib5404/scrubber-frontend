@@ -1,18 +1,24 @@
 'use client';
 
 import { Suspense, useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { canUploadOrValidate, useAuthStore } from '@/modules/auth';
 import { AppShell, BatchList, BatchUpload } from '@/modules/batches';
 import { TableSkeleton } from '@/components/layout/table-skeleton';
 
 export default function CustomerBatchesPage() {
+  const router = useRouter();
   const [refreshKey, setRefreshKey] = useState(0);
   const user = useAuthStore((s) => s.user);
   const canUpload = canUploadOrValidate(user);
 
-  const onUploaded = useCallback(() => {
-    setRefreshKey((k) => k + 1);
-  }, []);
+  const onUploaded = useCallback(
+    (batchId: number) => {
+      setRefreshKey((k) => k + 1);
+      router.push(`/portal/batches/${batchId}`);
+    },
+    [router],
+  );
 
   return (
     <AppShell

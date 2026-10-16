@@ -243,9 +243,20 @@ export type BatchValidateResult = {
   claims?: Array<{ claim_id: string; status: string; validation_errors: unknown }>;
 };
 
+export type BatchProgressSnapshot = {
+  mode: 'counted' | 'indeterminate';
+  processed: number;
+  total: number;
+  percentage: number | null;
+};
+
 export type BatchStatusPoll = {
   status: string;
   label: string;
+  /** Display stage derived from status. Existing status values are unchanged. */
+  stage?: PipelineStage | string;
+  message?: string;
+  progress?: BatchProgressSnapshot;
   total_claims: number;
   valid_claims: number;
   error_claims: number;

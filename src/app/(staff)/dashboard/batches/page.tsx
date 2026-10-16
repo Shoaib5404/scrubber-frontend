@@ -1,15 +1,21 @@
 'use client';
 
 import { Suspense, useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppShell, BatchList, BatchUpload } from '@/modules/batches';
 import { TableSkeleton } from '@/components/layout/table-skeleton';
 
 export default function StaffBatchesPage() {
+  const router = useRouter();
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const onUploaded = useCallback(() => {
-    setRefreshKey((k) => k + 1);
-  }, []);
+  const onUploaded = useCallback(
+    (batchId: number) => {
+      setRefreshKey((k) => k + 1);
+      router.push(`/dashboard/batches/${batchId}`);
+    },
+    [router],
+  );
 
   return (
     <AppShell

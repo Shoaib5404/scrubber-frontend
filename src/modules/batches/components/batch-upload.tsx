@@ -111,7 +111,7 @@ export function BatchUpload({ onUploaded }: BatchUploadProps) {
           ? `Uploading ${progress}%…`
           : 'Uploading…'
         : phase === 'finalizing'
-          ? 'Finishing…'
+          ? 'Checking file…'
           : 'Upload';
 
   return (
@@ -192,6 +192,11 @@ export function BatchUpload({ onUploaded }: BatchUploadProps) {
                 style={{ width: `${progress}%` }}
               />
             </div>
+          ) : null}
+          {phase === 'finalizing' ? (
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              File upload finished. Checking the EDI file and saving claims.
+            </p>
           ) : null}
 
           {error ? (

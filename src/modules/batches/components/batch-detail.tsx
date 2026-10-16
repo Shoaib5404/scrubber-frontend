@@ -15,10 +15,14 @@ import { getBatch, getBatchStatus, listBatchClaims, validateBatch } from '../api
 import {
   isBatchStatusPollable,
   isBatchStatusTerminal,
+  pipelineStage,
+  pipelineStageLabel,
   type BatchStatistics,
+  type BatchStatusPoll,
   type BatchSummary,
   type ClaimSummary,
   type LengthAwarePaginator,
+  type PipelineStage,
 } from '../types';
 import { AsyncState, friendlyError } from './async-state';
 import { ClaimStatusBadge, StatusBadge } from './status-badge';
@@ -53,6 +57,7 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [pollLabel, setPollLabel] = useState<string | null>(null);
+  const [statusPoll, setStatusPoll] = useState<BatchStatusPoll | null>(null);
   const reloadClaimsAfterTerminal = useRef(false);
 
   const load = useCallback(
@@ -69,6 +74,11 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
         setBatch(detail.batch);
         setStats(detail.statistics);
         setClaims(claimPage);
+        try {
+          setStatusPoll(await getBatchStatus(batchId));
+        } catch {
+          // The batch view still works from the detail payload.
+        }
       } catch (err) {
         setError(friendlyError(err));
         setBatch(null);
@@ -97,6 +107,7 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
         const pollData = await getBatchStatus(batchId);
         if (cancelled) return;
         setPollLabel(pollData.label);
+        setStatusPoll(pollData);
         setBatch((prev) =>
           prev
             ? {
@@ -276,6 +287,8 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
               </div>
             </div>
 
+            {statusPoll ? <BatchProcessingPanel poll={statusPoll} /> : null}
+
             {isBatchStatusPollable(batch.status) ? (
               <Alert data-testid="batch-status-poll-banner">
                 <AlertDescription>
@@ -294,12 +307,14 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
             ) : null}
 
             {stats ? (
-              <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {[
                   ['Total claims', stats.total_claims],
-                  ['Valid', stats.valid_claims],
+                  ['Processed', Math.max(0, stats.total_claims - stats.pending_claims)],
+                  ['Passed', stats.valid_claims],
+                  ['Failed', stats.error_claims],
                   ['Warnings', stats.warning_claims],
-                  ['Errors', stats.error_claims],
+                  ['Pending', stats.pending_claims],
                 ].map(([label, value]) => (
                   <Card key={String(label)} size="sm">
                     <CardHeader className="pb-0">
@@ -428,5 +443,93 @@ export function BatchDetail({ batchId, basePath }: BatchDetailProps) {
         ) : null}
       </AsyncState>
     </div>
+  );
+}
+
+const TIMELINE: Array<{ stage: PipelineStage; label: string }> = [
+  { stage: 'uploaded', label: 'File accepted' },
+  { stage: 'parsed', label: 'Claims saved' },
+  { stage: 'validating', label: 'Validating claims' },
+  { stage: 'validation_complete', label: 'Ready for review' },
+];
+
+function stageRank(stage: PipelineStage): number {
+  if (stage === 'exported') return 4;
+  return TIMELINE.findIndex((step) => step.stage === stage);
+}
+
+function BatchProcessingPanel({ poll }: { poll: BatchStatusPoll }) {
+  const stage = pipelineStage(poll.status);
+  const rank = stageRank(stage);
+  const progress = poll.progress;
+  const counted = progress?.mode === 'counted' && progress.percentage != null;
+  const message = poll.message ?? pipelineStageLabel(stage);
+
+  return (
+    <Card data-testid="batch-processing-panel">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Processing</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <p className="text-sm text-foreground" aria-live="polite">
+          {message}
+        </p>
+        {counted ? (
+          <div>
+            <div
+              className="h-2 overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuenow={progress.percentage ?? 0}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Claim validation progress"
+            >
+              <div
+                className="h-full bg-primary"
+                style={{ width: `${progress.percentage}%` }}
+              />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+              {progress.processed} of {progress.total} claims ({progress.percentage}%)
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Claim total is not available yet.
+          </p>
+        )}
+        <ol className="flex flex-col gap-2 text-sm">
+          {TIMELINE.map((step, index) => {
+            const complete = stage === 'validation_complete' || stage === 'exported';
+            const done = stage !== 'error' && (complete ? rank >= index : rank > index);
+            const current = stage !== 'error' && !complete && rank === index;
+            return (
+              <li key={step.stage} className="flex items-center gap-2">
+                <span
+                  className={
+                    done
+                      ? 'size-2 rounded-full bg-primary'
+                      : current
+                        ? 'size-2 rounded-full bg-primary/70'
+                        : 'size-2 rounded-full bg-border'
+                  }
+                  aria-hidden
+                />
+                <span className={current ? 'font-medium text-foreground' : 'text-muted-foreground'}>
+                  {step.label}
+                  {done ? ' — done' : current ? ' — current' : ''}
+                </span>
+              </li>
+            );
+          })}
+          {stage === 'error' ? (
+            <li className="text-destructive">Processing failed</li>
+          ) : null}
+          {stage === 'exported' ? (
+            <li className="text-muted-foreground">Exported</li>
+          ) : null}
+        </ol>
+      </CardContent>
+    </Card>
   );
 }
