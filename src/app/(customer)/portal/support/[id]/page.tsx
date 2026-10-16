@@ -118,13 +118,13 @@ export default function PortalInquiryDetailPage() {
               <div>
                 <dt className="text-muted-foreground">Created</dt>
                 <dd className="mt-1">
-                  <SmartTime value={detail.created_at} />
+                  <SmartTime value={detail.created_at} display="absolute" />
                 </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">Updated</dt>
                 <dd className="mt-1">
-                  <SmartTime value={detail.updated_at} />
+                  <SmartTime value={detail.updated_at} display="absolute" />
                 </dd>
               </div>
             </dl>
@@ -155,7 +155,7 @@ export default function PortalInquiryDetailPage() {
                       )}
                     >
                       <p className="text-xs text-muted-foreground">
-                        {authorLabel(m)} · <SmartTime value={m.created_at} />
+                        {authorLabel(m)} · <SmartTime value={m.created_at} display="absolute" />
                       </p>
                       <p className="mt-1 whitespace-pre-wrap">{m.body}</p>
                     </li>

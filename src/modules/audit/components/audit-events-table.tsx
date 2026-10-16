@@ -35,7 +35,7 @@ export function AuditEventsTable({ rows, showTenant = false }: Props) {
           rows.map((r) => (
             <tr key={r.id} className="border-b border-border align-top">
               <td className="py-2 pr-3 whitespace-nowrap">
-                <SmartTime value={r.occurred_at} mode="datetime" />
+                <SmartTime value={r.occurred_at} mode="datetime" display="absolute" />
               </td>
               <td className="py-2 pr-3">
                 <div>{r.category_label}</div>

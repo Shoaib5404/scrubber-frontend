@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/modules/batches/components/app-shell';
 import { RequireAuth } from '@/modules/auth';
+import { SmartTime } from '@/components/ui/smart-time';
 import { sanitizeUploadLogError } from '@/lib/api/customer-facing-message';
 import { listUploadLogs, type UploadLogRow } from '@/modules/upload-logs/api';
 
@@ -33,7 +34,8 @@ export default function PortalUploadLogsPage() {
             <tr className="border-b border-border text-muted-foreground">
               <th className="py-2 pr-3">File</th>
               <th className="py-2 pr-3">Status</th>
-              <th className="py-2">Error</th>
+              <th className="py-2 pr-3">Error</th>
+              <th className="py-2">Created</th>
             </tr>
           </thead>
           <tbody>
@@ -41,7 +43,10 @@ export default function PortalUploadLogsPage() {
               <tr key={r.id} className="border-b border-border">
                 <td className="py-2 pr-3">{r.original_filename ?? '—'}</td>
                 <td className="py-2 pr-3">{r.status}</td>
-                <td className="py-2">{sanitizeUploadLogError(r)}</td>
+                <td className="py-2 pr-3">{sanitizeUploadLogError(r)}</td>
+                <td className="py-2">
+                  <SmartTime value={r.created_at} display="absolute" />
+                </td>
               </tr>
             ))}
           </tbody>

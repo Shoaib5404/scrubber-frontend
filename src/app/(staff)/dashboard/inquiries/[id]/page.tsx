@@ -157,7 +157,7 @@ export default function StaffInquiryDetailPage() {
               <div>
                 <dt className="text-muted-foreground">Created</dt>
                 <dd className="mt-1">
-                  <SmartTime value={detail.created_at} />
+                  <SmartTime value={detail.created_at} display="absolute" />
                 </dd>
               </div>
             </dl>
@@ -205,7 +205,7 @@ export default function StaffInquiryDetailPage() {
                       <p className="text-xs text-muted-foreground">
                         {m.author_type}
                         {m.author ? ` · ${m.author.name}` : ''} ·{' '}
-                        <SmartTime value={m.created_at} />
+                        <SmartTime value={m.created_at} display="absolute" />
                       </p>
                       <p className="mt-1 whitespace-pre-wrap">{m.body}</p>
                     </li>

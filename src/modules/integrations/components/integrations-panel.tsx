@@ -182,7 +182,7 @@ export function IntegrationsPanel() {
               <CardTitle className="text-base">API credentials</CardTitle>
               <CardDescription>
                 Last used:{' '}
-                <SmartTime value={client.last_used_at} empty="Never" />
+                <SmartTime value={client.last_used_at} display="absolute" empty="Never" />
               </CardDescription>
             </div>
             {client.is_active ? (

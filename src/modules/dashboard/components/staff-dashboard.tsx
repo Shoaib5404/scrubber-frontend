@@ -270,6 +270,7 @@ export function StaffDashboard() {
                   </span>
                   <SmartTime
                     value={row.created_at}
+                    display="absolute"
                     className="tabular-nums"
                   />
                 </li>

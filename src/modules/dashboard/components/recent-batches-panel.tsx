@@ -88,7 +88,7 @@ export function RecentBatchesPanel({
                     {batch.total_claims}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    <SmartTime value={batch.created_at} />
+                    <SmartTime value={batch.created_at} display="absolute" />
                   </TableCell>
                 </TableRow>
               ))}

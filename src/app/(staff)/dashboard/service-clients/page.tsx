@@ -203,7 +203,7 @@ export default function ServiceClientsPage() {
                 </td>
                 <td className="px-4 py-3">{c.is_active ? 'Yes' : 'No'}</td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  <SmartTime value={c.last_used_at} empty="Never" />
+                  <SmartTime value={c.last_used_at} display="absolute" empty="Never" />
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex flex-wrap justify-end gap-2">

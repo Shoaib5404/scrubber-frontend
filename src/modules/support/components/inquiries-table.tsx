@@ -54,7 +54,7 @@ export function InquiriesTable({ rows }: Props) {
               </td>
               <td className="px-3 py-2 capitalize">{row.status.replace(/_/g, ' ')}</td>
               <td className="px-3 py-2 text-muted-foreground">
-                <SmartTime value={row.created_at} />
+                <SmartTime value={row.created_at} display="absolute" />
               </td>
             </tr>
           ))}

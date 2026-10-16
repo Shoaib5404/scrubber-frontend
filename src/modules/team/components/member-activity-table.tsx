@@ -77,7 +77,7 @@ export function MemberActivityTable({
                 {m.claims_error}
               </TableCell>
               <TableCell className="text-muted-foreground">
-                <SmartTime value={m.last_upload_at} />
+                <SmartTime value={m.last_upload_at} display="absolute" />
               </TableCell>
               {onResendInvite ? (
                 <TableCell className="text-right">

@@ -17,6 +17,11 @@ import {
 export type SmartTimeProps = {
   value: string | Date | null | undefined;
   mode?: 'datetime' | 'date';
+  /**
+   * `smart` keeps relative labels (Just now, Today, …).
+   * `absolute` shows the standard datetime, e.g. `16 Oct 2026, 08:15:32 pm`.
+   */
+  display?: 'smart' | 'absolute';
   empty?: string;
   className?: string;
   /** Live tick interval; default 60_000 when datetime age < 24h, else 0. */
@@ -52,6 +57,7 @@ function toDateTimeAttr(value: string | Date | null | undefined): string | undef
 export function SmartTime({
   value,
   mode = 'datetime',
+  display = 'smart',
   empty = '—',
   className,
   refreshMs,
@@ -59,7 +65,8 @@ export function SmartTime({
 }: SmartTimeProps) {
   const [now, setNow] = useState(() => new Date());
 
-  const intervalMs = resolveRefreshMs(value, mode, refreshMs, now);
+  const intervalMs =
+    display === 'absolute' ? 0 : resolveRefreshMs(value, mode, refreshMs, now);
 
   useEffect(() => {
     if (intervalMs <= 0) return;
@@ -77,9 +84,11 @@ export function SmartTime({
   }
 
   const label =
-    mode === 'date'
-      ? formatSmartDate(value, now)
-      : formatSmartDateTime(value, now);
+    display === 'absolute'
+      ? formatAbsoluteDateTime(value)
+      : mode === 'date'
+        ? formatSmartDate(value, now)
+        : formatSmartDateTime(value, now);
 
   if (label === '—') {
     return <span className={className}>{empty}</span>;

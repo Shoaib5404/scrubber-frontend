@@ -102,7 +102,7 @@ export function MyInquiriesTable({ rows }: Props) {
                         <div>
                           <dt className="text-muted-foreground">Updated</dt>
                           <dd>
-                            <SmartTime value={row.updated_at} />
+                            <SmartTime value={row.updated_at} display="absolute" />
                           </dd>
                         </div>
                         <div className="sm:col-span-2">

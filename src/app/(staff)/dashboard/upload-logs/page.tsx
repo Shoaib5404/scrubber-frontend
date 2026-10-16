@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/modules/batches/components/app-shell';
 import { RequireAuth } from '@/modules/auth';
+import { SmartTime } from '@/components/ui/smart-time';
 import { listUploadLogs, type UploadLogRow } from '@/modules/upload-logs/api';
 
 export default function UploadLogsPage() {
@@ -36,6 +37,7 @@ export default function UploadLogsPage() {
               <th className="py-2 pr-3">File</th>
               <th className="py-2 pr-3">Status</th>
               <th className="py-2 pr-3">Error</th>
+              <th className="py-2 pr-3">Created</th>
               {showUser ? <th className="py-2">User</th> : null}
             </tr>
           </thead>
@@ -45,6 +47,9 @@ export default function UploadLogsPage() {
                 <td className="py-2 pr-3">{r.original_filename ?? '—'}</td>
                 <td className="py-2 pr-3">{r.status}</td>
                 <td className="py-2 pr-3">{r.error_message ?? r.error_type ?? '—'}</td>
+                <td className="py-2 pr-3">
+                  <SmartTime value={r.created_at} display="absolute" />
+                </td>
                 {showUser ? (
                   <td className="py-2">{r.user?.email ?? r.user_id}</td>
                 ) : null}
